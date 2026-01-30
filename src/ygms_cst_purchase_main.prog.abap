@@ -4,6 +4,8 @@
 *&---------------------------------------------------------------------*
 REPORT ygms_cst_purchase_main.
 
+INCLUDE <icon>.
+
 *----------------------------------------------------------------------*
 * Type definitions for Excel upload
 *----------------------------------------------------------------------*
@@ -48,7 +50,39 @@ DATA: go_controller   TYPE REF TO ygms_cl_cst_controller,
       gt_allocation   TYPE ygms_tt_allocation,
       gt_messages     TYPE bapiret2_t,
       gv_gail_id      TYPE ygms_de_gail_id,
-      gt_excel_data   TYPE TABLE OF ty_excel_data.
+      gt_excel_data   TYPE TABLE OF ty_excel_data,
+      go_alv          TYPE REF TO cl_salv_table.
+
+*----------------------------------------------------------------------*
+* Local Class for ALV Event Handling
+*----------------------------------------------------------------------*
+CLASS lcl_alv_handler DEFINITION.
+  PUBLIC SECTION.
+    METHODS:
+      on_user_command FOR EVENT added_function OF cl_salv_events
+        IMPORTING e_salv_function.
+ENDCLASS.
+
+CLASS lcl_alv_handler IMPLEMENTATION.
+  METHOD on_user_command.
+    CASE e_salv_function.
+      WHEN 'SAVE'.
+        " Save data
+        PERFORM action_save.
+      WHEN 'SEND'.
+        " Send to ONGC
+        PERFORM action_send.
+      WHEN 'DOWNLOAD'.
+        " Download to Excel
+        PERFORM action_download.
+      WHEN 'REFRESH'.
+        " Refresh data
+        PERFORM action_refresh.
+    ENDCASE.
+  ENDMETHOD.
+ENDCLASS.
+
+DATA: go_alv_handler TYPE REF TO lcl_alv_handler.
 
 *----------------------------------------------------------------------*
 * At Selection Screen Output
@@ -244,25 +278,63 @@ ENDFORM.
 *& Form DISPLAY_ALV
 *&---------------------------------------------------------------------*
 FORM display_alv.
-  DATA: lo_alv       TYPE REF TO cl_salv_table,
-        lo_functions TYPE REF TO cl_salv_functions_list,
+  DATA: lo_functions TYPE REF TO cl_salv_functions_list,
         lo_columns   TYPE REF TO cl_salv_columns_table,
-        lo_column    TYPE REF TO cl_salv_column.
+        lo_column    TYPE REF TO cl_salv_column,
+        lo_events    TYPE REF TO cl_salv_events_table.
 
   TRY.
       cl_salv_table=>factory(
         IMPORTING
-          r_salv_table = lo_alv
+          r_salv_table = go_alv
         CHANGING
           t_table      = gt_allocation
       ).
 
-      " Enable all functions
-      lo_functions = lo_alv->get_functions( ).
+      " Enable all standard functions
+      lo_functions = go_alv->get_functions( ).
       lo_functions->set_all( abap_true ).
 
+      " Add custom buttons
+      TRY.
+          lo_functions->add_function(
+            name     = 'SAVE'
+            icon     = icon_system_save
+            text     = 'Save Data'
+            tooltip  = 'Save allocation data to database'
+            position = if_salv_c_function_position=>right_of_salv_functions
+          ).
+          lo_functions->add_function(
+            name     = 'SEND'
+            icon     = icon_mail
+            text     = 'Send to ONGC'
+            tooltip  = 'Save and send data to ONGC'
+            position = if_salv_c_function_position=>right_of_salv_functions
+          ).
+          lo_functions->add_function(
+            name     = 'DOWNLOAD'
+            icon     = icon_export
+            text     = 'Download'
+            tooltip  = 'Download data to Excel'
+            position = if_salv_c_function_position=>right_of_salv_functions
+          ).
+          lo_functions->add_function(
+            name     = 'REFRESH'
+            icon     = icon_refresh
+            text     = 'Refresh'
+            tooltip  = 'Refresh data from database'
+            position = if_salv_c_function_position=>right_of_salv_functions
+          ).
+        CATCH cx_salv_wrong_call cx_salv_existing.
+      ENDTRY.
+
+      " Set up event handler
+      CREATE OBJECT go_alv_handler.
+      lo_events = go_alv->get_event( ).
+      SET HANDLER go_alv_handler->on_user_command FOR lo_events.
+
       " Set column texts
-      lo_columns = lo_alv->get_columns( ).
+      lo_columns = go_alv->get_columns( ).
       lo_columns->set_optimize( abap_true ).
 
       TRY.
@@ -270,6 +342,46 @@ FORM display_alv.
           lo_column->set_short_text( 'Gas Day' ).
           lo_column->set_medium_text( 'Gas Day' ).
           lo_column->set_long_text( 'Gas Day' ).
+        CATCH cx_salv_not_found.
+      ENDTRY.
+
+      TRY.
+          lo_column = lo_columns->get_column( 'LOCATION_ID' ).
+          lo_column->set_short_text( 'Location' ).
+          lo_column->set_medium_text( 'Location ID' ).
+          lo_column->set_long_text( 'Location ID' ).
+        CATCH cx_salv_not_found.
+      ENDTRY.
+
+      TRY.
+          lo_column = lo_columns->get_column( 'STATE' ).
+          lo_column->set_short_text( 'State' ).
+          lo_column->set_medium_text( 'State Name' ).
+          lo_column->set_long_text( 'State Name' ).
+        CATCH cx_salv_not_found.
+      ENDTRY.
+
+      TRY.
+          lo_column = lo_columns->get_column( 'STATE_CODE' ).
+          lo_column->set_short_text( 'St.Code' ).
+          lo_column->set_medium_text( 'State Code' ).
+          lo_column->set_long_text( 'State Code' ).
+        CATCH cx_salv_not_found.
+      ENDTRY.
+
+      TRY.
+          lo_column = lo_columns->get_column( 'SUPPLY_QTY_MBG' ).
+          lo_column->set_short_text( 'Sup MBG' ).
+          lo_column->set_medium_text( 'Supply MMBTU' ).
+          lo_column->set_long_text( 'Supply Quantity (MMBTU)' ).
+        CATCH cx_salv_not_found.
+      ENDTRY.
+
+      TRY.
+          lo_column = lo_columns->get_column( 'SUPPLY_QTY_SCM' ).
+          lo_column->set_short_text( 'Sup SCM' ).
+          lo_column->set_medium_text( 'Supply SCM' ).
+          lo_column->set_long_text( 'Supply Quantity (SCM)' ).
         CATCH cx_salv_not_found.
       ENDTRY.
 
@@ -289,10 +401,172 @@ FORM display_alv.
         CATCH cx_salv_not_found.
       ENDTRY.
 
+      TRY.
+          lo_column = lo_columns->get_column( 'ALLOC_PCT' ).
+          lo_column->set_short_text( 'Alloc %' ).
+          lo_column->set_medium_text( 'Allocation %' ).
+          lo_column->set_long_text( 'Allocation Percentage' ).
+        CATCH cx_salv_not_found.
+      ENDTRY.
+
+      TRY.
+          lo_column = lo_columns->get_column( 'TAX_TYPE' ).
+          lo_column->set_short_text( 'Tax' ).
+          lo_column->set_medium_text( 'Tax Type' ).
+          lo_column->set_long_text( 'Tax Type (CST/GST)' ).
+        CATCH cx_salv_not_found.
+      ENDTRY.
+
+      " Set ALV title
+      go_alv->get_display_settings( )->set_list_header( 'CST Purchase Data Allocation' ).
+
       " Display
-      lo_alv->display( ).
+      go_alv->display( ).
 
     CATCH cx_salv_msg INTO DATA(lx_salv).
       MESSAGE lx_salv TYPE 'E'.
+  ENDTRY.
+ENDFORM.
+
+*&---------------------------------------------------------------------*
+*& Form ACTION_SAVE
+*&---------------------------------------------------------------------*
+FORM action_save.
+  DATA: lv_answer TYPE c.
+
+  " Confirm save
+  CALL FUNCTION 'POPUP_TO_CONFIRM'
+    EXPORTING
+      titlebar              = 'Confirm Save'
+      text_question         = 'Do you want to save the allocation data?'
+      text_button_1         = 'Yes'
+      text_button_2         = 'No'
+      default_button        = '2'
+      display_cancel_button = abap_false
+    IMPORTING
+      answer                = lv_answer.
+
+  IF lv_answer = '1'.
+    TRY.
+        go_controller->save_data(
+          EXPORTING
+            it_data     = gt_allocation
+          IMPORTING
+            ev_gail_id  = gv_gail_id
+            et_messages = gt_messages
+        ).
+        MESSAGE |Data saved successfully. GAIL ID: { gv_gail_id }| TYPE 'S'.
+      CATCH ygms_cx_cst_error INTO DATA(lx_error).
+        MESSAGE lx_error TYPE 'E'.
+    ENDTRY.
+  ENDIF.
+ENDFORM.
+
+*&---------------------------------------------------------------------*
+*& Form ACTION_SEND
+*&---------------------------------------------------------------------*
+FORM action_send.
+  DATA: lv_answer TYPE c.
+
+  " Confirm send
+  CALL FUNCTION 'POPUP_TO_CONFIRM'
+    EXPORTING
+      titlebar              = 'Confirm Send to ONGC'
+      text_question         = 'Do you want to save and send data to ONGC?'
+      text_button_1         = 'Yes'
+      text_button_2         = 'No'
+      default_button        = '2'
+      display_cancel_button = abap_false
+    IMPORTING
+      answer                = lv_answer.
+
+  IF lv_answer = '1'.
+    TRY.
+        " First save
+        go_controller->save_data(
+          EXPORTING
+            it_data     = gt_allocation
+          IMPORTING
+            ev_gail_id  = gv_gail_id
+            et_messages = gt_messages
+        ).
+
+        " Then send
+        go_controller->send_data(
+          EXPORTING
+            iv_gail_id     = gv_gail_id
+            iv_email       = p_email
+          IMPORTING
+            et_messages    = gt_messages
+        ).
+        MESSAGE |Data sent to ONGC successfully. GAIL ID: { gv_gail_id }| TYPE 'S'.
+      CATCH ygms_cx_cst_error INTO DATA(lx_error).
+        MESSAGE lx_error TYPE 'E'.
+    ENDTRY.
+  ENDIF.
+ENDFORM.
+
+*&---------------------------------------------------------------------*
+*& Form ACTION_DOWNLOAD
+*&---------------------------------------------------------------------*
+FORM action_download.
+  DATA: lv_filename TYPE string,
+        lv_path     TYPE string,
+        lv_fullpath TYPE string,
+        lv_action   TYPE i.
+
+  " Get save path
+  cl_gui_frontend_services=>file_save_dialog(
+    EXPORTING
+      window_title         = 'Save Allocation Data'
+      default_extension    = 'XLS'
+      default_file_name    = |CST_Allocation_{ sy-datum }|
+      file_filter          = 'Excel Files (*.xls)|*.xls'
+    CHANGING
+      filename             = lv_filename
+      path                 = lv_path
+      fullpath             = lv_fullpath
+      user_action          = lv_action
+    EXCEPTIONS
+      OTHERS               = 1
+  ).
+
+  IF sy-subrc = 0 AND lv_action = cl_gui_frontend_services=>action_ok.
+    " Download data
+    CALL FUNCTION 'GUI_DOWNLOAD'
+      EXPORTING
+        filename                = lv_fullpath
+        filetype                = 'ASC'
+        write_field_separator   = 'X'
+      TABLES
+        data_tab                = gt_allocation
+      EXCEPTIONS
+        OTHERS                  = 1.
+
+    IF sy-subrc = 0.
+      MESSAGE 'Data downloaded successfully' TYPE 'S'.
+    ELSE.
+      MESSAGE 'Error downloading data' TYPE 'E'.
+    ENDIF.
+  ENDIF.
+ENDFORM.
+
+*&---------------------------------------------------------------------*
+*& Form ACTION_REFRESH
+*&---------------------------------------------------------------------*
+FORM action_refresh.
+  TRY.
+      " Re-execute allocation from database
+      go_controller->execute_allocation(
+        IMPORTING
+          et_allocation = gt_allocation
+          et_messages   = gt_messages
+      ).
+
+      " Refresh ALV
+      go_alv->refresh( ).
+      MESSAGE |Data refreshed. { lines( gt_allocation ) } records loaded| TYPE 'S'.
+    CATCH ygms_cx_cst_error INTO DATA(lx_error).
+      MESSAGE lx_error TYPE 'E'.
   ENDTRY.
 ENDFORM.
