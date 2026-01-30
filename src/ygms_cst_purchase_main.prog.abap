@@ -306,42 +306,42 @@ FORM display_alv.
       TRY.
           lo_functions->add_function(
             name     = 'ALLOCATE'
-            icon     = icon_calculation
+            icon     = CONV salv_de_function_icon( icon_calculation )
             text     = 'Allocate'
             tooltip  = 'Execute state-wise allocation'
             position = if_salv_c_function_position=>right_of_salv_functions
           ).
           lo_functions->add_function(
             name     = 'VALIDATE'
-            icon     = icon_check
+            icon     = CONV salv_de_function_icon( icon_check )
             text     = 'Validate'
             tooltip  = 'Validate allocation data'
             position = if_salv_c_function_position=>right_of_salv_functions
           ).
           lo_functions->add_function(
             name     = 'EDIT'
-            icon     = icon_change
+            icon     = CONV salv_de_function_icon( icon_change )
             text     = 'Edit'
             tooltip  = 'Enable edit mode'
             position = if_salv_c_function_position=>right_of_salv_functions
           ).
           lo_functions->add_function(
             name     = 'SAVE'
-            icon     = icon_system_save
+            icon     = CONV salv_de_function_icon( icon_system_save )
             text     = 'Save'
             tooltip  = 'Save allocation data'
             position = if_salv_c_function_position=>right_of_salv_functions
           ).
           lo_functions->add_function(
             name     = 'RESET'
-            icon     = icon_refresh
+            icon     = CONV salv_de_function_icon( icon_refresh )
             text     = 'Reset'
             tooltip  = 'Reset allocation data'
             position = if_salv_c_function_position=>right_of_salv_functions
           ).
           lo_functions->add_function(
             name     = 'SEND'
-            icon     = icon_mail
+            icon     = CONV salv_de_function_icon( icon_mail )
             text     = 'Send'
             tooltip  = 'Send data to ONGC'
             position = if_salv_c_function_position=>right_of_salv_functions
@@ -537,10 +537,9 @@ FORM action_send.
         " Then send
         go_controller->send_data(
           EXPORTING
-            iv_gail_id     = gv_gail_id
-            iv_email       = p_email
+            iv_email_address = p_email
           IMPORTING
-            et_messages    = gt_messages
+            et_messages      = gt_messages
         ).
         MESSAGE |Data sent to ONGC successfully. GAIL ID: { gv_gail_id }| TYPE 'S'.
       CATCH ygms_cx_cst_error INTO DATA(lx_error).
@@ -618,26 +617,16 @@ ENDFORM.
 *& Form ACTION_VALIDATE
 *&---------------------------------------------------------------------*
 FORM action_validate.
-  DATA: lv_errors   TYPE i,
-        lv_warnings TYPE i.
+  DATA: lv_valid TYPE abap_bool.
 
   TRY.
-      " Validate allocation data
-      go_controller->validate_allocation(
-        EXPORTING
-          it_allocation = gt_allocation
-        IMPORTING
-          ev_errors     = lv_errors
-          ev_warnings   = lv_warnings
-          et_messages   = gt_messages
-      ).
+      " Validate allocation data using interface method
+      lv_valid = go_controller->ygms_if_cst_processor~validate( gt_allocation ).
 
-      IF lv_errors > 0.
-        MESSAGE |Validation failed: { lv_errors } errors, { lv_warnings } warnings| TYPE 'E'.
-      ELSEIF lv_warnings > 0.
-        MESSAGE |Validation passed with { lv_warnings } warnings| TYPE 'W'.
-      ELSE.
+      IF lv_valid = abap_true.
         MESSAGE 'Validation successful - No errors found' TYPE 'S'.
+      ELSE.
+        MESSAGE 'Validation failed - Please check the data' TYPE 'E'.
       ENDIF.
     CATCH ygms_cx_cst_error INTO DATA(lx_error).
       MESSAGE lx_error TYPE 'E'.
