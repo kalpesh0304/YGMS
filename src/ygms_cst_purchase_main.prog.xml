@@ -49,12 +49,6 @@
     </item>
     <item>
      <ID>S</ID>
-     <KEY>P_EXST</KEY>
-     <ENTRY>        Exclude State</ENTRY>
-     <LENGTH>21</LENGTH>
-    </item>
-    <item>
-     <ID>S</ID>
      <KEY>P_DB</KEY>
      <ENTRY>        From Database</ENTRY>
      <LENGTH>21</LENGTH>

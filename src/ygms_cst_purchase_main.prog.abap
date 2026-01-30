@@ -26,7 +26,6 @@ TYPES: BEGIN OF ty_excel_data,
 SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE text-001.
   PARAMETERS:     p_loc    TYPE ygms_de_loc_id OBLIGATORY.
   SELECT-OPTIONS: s_date   FOR sy-datum OBLIGATORY.
-  PARAMETERS:     p_exst   TYPE char2.  "Excluded state code
 SELECTION-SCREEN END OF BLOCK b1.
 
 SELECTION-SCREEN BEGIN OF BLOCK b2 WITH FRAME TITLE text-002.
@@ -49,7 +48,6 @@ DATA: go_controller   TYPE REF TO ygms_cl_cst_controller,
       gt_allocation   TYPE ygms_tt_allocation,
       gt_messages     TYPE bapiret2_t,
       gv_gail_id      TYPE ygms_de_gail_id,
-      gt_excl_states  TYPE ygms_tt_state_excl,
       gt_excel_data   TYPE TABLE OF ty_excel_data.
 
 *----------------------------------------------------------------------*
@@ -98,11 +96,6 @@ START-OF-SELECTION.
     iv_date_to     = s_date-high
   ).
 
-  " Build exclusion table from parameter
-  IF p_exst IS NOT INITIAL.
-    APPEND p_exst TO gt_excl_states.
-  ENDIF.
-
   TRY.
       IF p_upld = abap_true.
         " Upload from Excel
@@ -111,8 +104,6 @@ START-OF-SELECTION.
       ELSE.
         " Execute allocation from database
         go_controller->execute_allocation(
-          EXPORTING
-            it_excluded_states = gt_excl_states
           IMPORTING
             et_allocation      = gt_allocation
             et_messages        = gt_messages
@@ -244,13 +235,6 @@ FORM convert_excel_to_allocation.
     ls_allocation-gcv           = ls_excel-gcv.
     ls_allocation-ncv           = ls_excel-ncv.
     ls_allocation-tax_type      = ls_excel-tax_type.
-
-    " Check if state is excluded
-    READ TABLE gt_excl_states TRANSPORTING NO FIELDS
-         WITH KEY table_line = ls_allocation-state_code.
-    IF sy-subrc = 0.
-      ls_allocation-excluded = abap_true.
-    ENDIF.
 
     APPEND ls_allocation TO gt_allocation.
   ENDLOOP.
