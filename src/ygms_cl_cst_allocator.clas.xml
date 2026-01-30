@@ -12,6 +12,23 @@
     <FIXPT>X</FIXPT>
     <UNICODE>X</UNICODE>
    </VSEOCLASS>
+   <TPOOL>
+    <item>
+     <ID>R</ID>
+     <ENTRY>State-wise Allocator for CST Purchase Data</ENTRY>
+     <LENGTH>42</LENGTH>
+    </item>
+   </TPOOL>
+   <VSEOMETHOD>
+    <item>
+     <CLSNAME>YGMS_CL_CST_ALLOCATOR</CLSNAME>
+     <CMPNAME>ALLOCATE</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Allocate B2B data to states</DESCRIPT>
+     <EXPOSURE>2</EXPOSURE>
+     <MTDTYPE>0</MTDTYPE>
+    </item>
+   </VSEOMETHOD>
   </asx:values>
  </asx:abap>
 </abapGit>

@@ -11,8 +11,89 @@
     <CLSCCINCL>X</CLSCCINCL>
     <FIXPT>X</FIXPT>
     <UNICODE>X</UNICODE>
-    <WITH_UNIT_TESTS>X</WITH_UNIT_TESTS>
    </VSEOCLASS>
+   <TPOOL>
+    <item>
+     <ID>R</ID>
+     <ENTRY>Main Controller for CST Purchase Data Processing</ENTRY>
+     <LENGTH>49</LENGTH>
+    </item>
+   </TPOOL>
+   <VSEOMETHOD>
+    <item>
+     <CLSNAME>YGMS_CL_CST_CONTROLLER</CLSNAME>
+     <CMPNAME>CONSTRUCTOR</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Constructor</DESCRIPT>
+     <EXPOSURE>2</EXPOSURE>
+     <MTDTYPE>2</MTDTYPE>
+    </item>
+    <item>
+     <CLSNAME>YGMS_CL_CST_CONTROLLER</CLSNAME>
+     <CMPNAME>SET_SELECTION</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Set selection parameters</DESCRIPT>
+     <EXPOSURE>2</EXPOSURE>
+     <MTDTYPE>0</MTDTYPE>
+    </item>
+    <item>
+     <CLSNAME>YGMS_CL_CST_CONTROLLER</CLSNAME>
+     <CMPNAME>EXECUTE_ALLOCATION</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Execute allocation process</DESCRIPT>
+     <EXPOSURE>2</EXPOSURE>
+     <MTDTYPE>0</MTDTYPE>
+     <MTDEXCEPT>X</MTDEXCEPT>
+    </item>
+    <item>
+     <CLSNAME>YGMS_CL_CST_CONTROLLER</CLSNAME>
+     <CMPNAME>SAVE_DATA</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Save data to database</DESCRIPT>
+     <EXPOSURE>2</EXPOSURE>
+     <MTDTYPE>0</MTDTYPE>
+     <MTDEXCEPT>X</MTDEXCEPT>
+    </item>
+    <item>
+     <CLSNAME>YGMS_CL_CST_CONTROLLER</CLSNAME>
+     <CMPNAME>SEND_DATA</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Send data via email</DESCRIPT>
+     <EXPOSURE>2</EXPOSURE>
+     <MTDTYPE>0</MTDTYPE>
+     <MTDEXCEPT>X</MTDEXCEPT>
+    </item>
+    <item>
+     <CLSNAME>YGMS_CL_CST_CONTROLLER</CLSNAME>
+     <CMPNAME>CHECK_AUTHORIZATION</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Check authorization</DESCRIPT>
+     <EXPOSURE>2</EXPOSURE>
+     <MTDTYPE>0</MTDTYPE>
+    </item>
+    <item>
+     <CLSNAME>YGMS_CL_CST_CONTROLLER</CLSNAME>
+     <CMPNAME>ADD_MESSAGE</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Add message to message table</DESCRIPT>
+     <EXPOSURE>1</EXPOSURE>
+     <MTDTYPE>0</MTDTYPE>
+    </item>
+    <item>
+     <CLSNAME>YGMS_CL_CST_CONTROLLER</CLSNAME>
+     <CMPNAME>GENERATE_GAIL_ID</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Generate GAIL ID</DESCRIPT>
+     <EXPOSURE>1</EXPOSURE>
+     <MTDTYPE>0</MTDTYPE>
+    </item>
+   </VSEOMETHOD>
+   <VSEOINTERFACE>
+    <item>
+     <CLSNAME>YGMS_CL_CST_CONTROLLER</CLSNAME>
+     <REFCLSNAME>YGMS_IF_CST_PROCESSOR</REFCLSNAME>
+    </item>
+   </VSEOINTERFACE>
   </asx:values>
  </asx:abap>
 </abapGit>

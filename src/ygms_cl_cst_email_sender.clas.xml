@@ -12,6 +12,24 @@
     <FIXPT>X</FIXPT>
     <UNICODE>X</UNICODE>
    </VSEOCLASS>
+   <TPOOL>
+    <item>
+     <ID>R</ID>
+     <ENTRY>Email Sender for CST Purchase Data</ENTRY>
+     <LENGTH>36</LENGTH>
+    </item>
+   </TPOOL>
+   <VSEOMETHOD>
+    <item>
+     <CLSNAME>YGMS_CL_CST_EMAIL_SENDER</CLSNAME>
+     <CMPNAME>SEND</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Send email with data</DESCRIPT>
+     <EXPOSURE>2</EXPOSURE>
+     <MTDTYPE>0</MTDTYPE>
+     <MTDEXCEPT>X</MTDEXCEPT>
+    </item>
+   </VSEOMETHOD>
   </asx:values>
  </asx:abap>
 </abapGit>

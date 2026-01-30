@@ -12,6 +12,31 @@
     <FIXPT>X</FIXPT>
     <UNICODE>X</UNICODE>
    </VSEOCLASS>
+   <TPOOL>
+    <item>
+     <ID>R</ID>
+     <ENTRY>Validation Engine for CST Purchase Data</ENTRY>
+     <LENGTH>40</LENGTH>
+    </item>
+   </TPOOL>
+   <VSEOMETHOD>
+    <item>
+     <CLSNAME>YGMS_CL_CST_VALIDATOR</CLSNAME>
+     <CMPNAME>VALIDATE_ALLOCATION</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Validate allocation data</DESCRIPT>
+     <EXPOSURE>2</EXPOSURE>
+     <MTDTYPE>0</MTDTYPE>
+    </item>
+    <item>
+     <CLSNAME>YGMS_CL_CST_VALIDATOR</CLSNAME>
+     <CMPNAME>VALIDATE_TOTALS</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Validate totals match</DESCRIPT>
+     <EXPOSURE>2</EXPOSURE>
+     <MTDTYPE>0</MTDTYPE>
+    </item>
+   </VSEOMETHOD>
   </asx:values>
  </asx:abap>
 </abapGit>

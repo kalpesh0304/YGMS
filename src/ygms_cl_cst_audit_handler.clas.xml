@@ -12,6 +12,39 @@
     <FIXPT>X</FIXPT>
     <UNICODE>X</UNICODE>
    </VSEOCLASS>
+   <TPOOL>
+    <item>
+     <ID>R</ID>
+     <ENTRY>Audit Log Handler for CST Purchase Processing</ENTRY>
+     <LENGTH>45</LENGTH>
+    </item>
+   </TPOOL>
+   <VSEOMETHOD>
+    <item>
+     <CLSNAME>YGMS_CL_CST_AUDIT_HANDLER</CLSNAME>
+     <CMPNAME>LOG_INSERT</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Log insert operation</DESCRIPT>
+     <EXPOSURE>2</EXPOSURE>
+     <MTDTYPE>0</MTDTYPE>
+    </item>
+    <item>
+     <CLSNAME>YGMS_CL_CST_AUDIT_HANDLER</CLSNAME>
+     <CMPNAME>LOG_UPDATE</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Log update operation</DESCRIPT>
+     <EXPOSURE>2</EXPOSURE>
+     <MTDTYPE>0</MTDTYPE>
+    </item>
+    <item>
+     <CLSNAME>YGMS_CL_CST_AUDIT_HANDLER</CLSNAME>
+     <CMPNAME>LOG_DELETE</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Log delete operation</DESCRIPT>
+     <EXPOSURE>2</EXPOSURE>
+     <MTDTYPE>0</MTDTYPE>
+    </item>
+   </VSEOMETHOD>
   </asx:values>
  </asx:abap>
 </abapGit>

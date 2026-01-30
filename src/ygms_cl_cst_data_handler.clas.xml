@@ -12,6 +12,47 @@
     <FIXPT>X</FIXPT>
     <UNICODE>X</UNICODE>
    </VSEOCLASS>
+   <TPOOL>
+    <item>
+     <ID>R</ID>
+     <ENTRY>Data Access Handler for CST Purchase Processing</ENTRY>
+     <LENGTH>45</LENGTH>
+    </item>
+   </TPOOL>
+   <VSEOMETHOD>
+    <item>
+     <CLSNAME>YGMS_CL_CST_DATA_HANDLER</CLSNAME>
+     <CMPNAME>GET_B2B_DATA</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Get B2B receipt data</DESCRIPT>
+     <EXPOSURE>2</EXPOSURE>
+     <MTDTYPE>0</MTDTYPE>
+    </item>
+    <item>
+     <CLSNAME>YGMS_CL_CST_DATA_HANDLER</CLSNAME>
+     <CMPNAME>GET_MATERIAL_MAPPING</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Get material mapping</DESCRIPT>
+     <EXPOSURE>2</EXPOSURE>
+     <MTDTYPE>0</MTDTYPE>
+    </item>
+    <item>
+     <CLSNAME>YGMS_CL_CST_DATA_HANDLER</CLSNAME>
+     <CMPNAME>SAVE_PURCHASE_DATA</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Save purchase data</DESCRIPT>
+     <EXPOSURE>2</EXPOSURE>
+     <MTDTYPE>0</MTDTYPE>
+    </item>
+    <item>
+     <CLSNAME>YGMS_CL_CST_DATA_HANDLER</CLSNAME>
+     <CMPNAME>GET_LOCATION_MAPPING</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Get location mapping</DESCRIPT>
+     <EXPOSURE>2</EXPOSURE>
+     <MTDTYPE>0</MTDTYPE>
+    </item>
+   </VSEOMETHOD>
   </asx:values>
  </asx:abap>
 </abapGit>
