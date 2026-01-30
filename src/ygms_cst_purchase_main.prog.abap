@@ -51,7 +51,12 @@ DATA: go_controller   TYPE REF TO ygms_cl_cst_controller,
       gt_messages     TYPE bapiret2_t,
       gv_gail_id      TYPE ygms_de_gail_id,
       gt_excel_data   TYPE TABLE OF ty_excel_data,
-      go_alv          TYPE REF TO cl_salv_table.
+      go_alv_grid     TYPE REF TO cl_gui_alv_grid,
+      go_container    TYPE REF TO cl_gui_docking_container,
+      gt_fieldcat     TYPE lvc_t_fcat,
+      gs_layout       TYPE lvc_s_layo,
+      gv_edit_mode    TYPE abap_bool VALUE abap_false,
+      ok_code         TYPE sy-ucomm.
 
 *----------------------------------------------------------------------*
 * Local Class for ALV Event Handling
@@ -59,32 +64,92 @@ DATA: go_controller   TYPE REF TO ygms_cl_cst_controller,
 CLASS lcl_alv_handler DEFINITION.
   PUBLIC SECTION.
     METHODS:
-      on_user_command FOR EVENT added_function OF cl_salv_events
-        IMPORTING e_salv_function.
+      on_toolbar FOR EVENT toolbar OF cl_gui_alv_grid
+        IMPORTING e_object e_interactive,
+      on_user_command FOR EVENT user_command OF cl_gui_alv_grid
+        IMPORTING e_ucomm,
+      on_data_changed FOR EVENT data_changed OF cl_gui_alv_grid
+        IMPORTING er_data_changed e_onf4 e_onf4_before e_onf4_after e_ucomm.
 ENDCLASS.
 
 CLASS lcl_alv_handler IMPLEMENTATION.
+  METHOD on_toolbar.
+    DATA: ls_button TYPE stb_button.
+
+    " Add separator
+    CLEAR ls_button.
+    ls_button-butn_type = 3.  " Separator
+    APPEND ls_button TO e_object->mt_toolbar.
+
+    " Allocate button
+    CLEAR ls_button.
+    ls_button-function  = 'ALLOCATE'.
+    ls_button-icon      = icon_calculation.
+    ls_button-quickinfo = 'Execute state-wise allocation'.
+    ls_button-text      = 'Allocate'.
+    APPEND ls_button TO e_object->mt_toolbar.
+
+    " Validate button
+    CLEAR ls_button.
+    ls_button-function  = 'VALIDATE'.
+    ls_button-icon      = icon_check.
+    ls_button-quickinfo = 'Validate allocation data'.
+    ls_button-text      = 'Validate'.
+    APPEND ls_button TO e_object->mt_toolbar.
+
+    " Edit button
+    CLEAR ls_button.
+    ls_button-function  = 'EDIT'.
+    ls_button-icon      = icon_change.
+    ls_button-quickinfo = 'Toggle edit mode'.
+    ls_button-text      = 'Edit'.
+    APPEND ls_button TO e_object->mt_toolbar.
+
+    " Save button
+    CLEAR ls_button.
+    ls_button-function  = 'SAVE'.
+    ls_button-icon      = icon_system_save.
+    ls_button-quickinfo = 'Save allocation data'.
+    ls_button-text      = 'Save'.
+    APPEND ls_button TO e_object->mt_toolbar.
+
+    " Reset button
+    CLEAR ls_button.
+    ls_button-function  = 'RESET'.
+    ls_button-icon      = icon_refresh.
+    ls_button-quickinfo = 'Reset allocation data'.
+    ls_button-text      = 'Reset'.
+    APPEND ls_button TO e_object->mt_toolbar.
+
+    " Send button
+    CLEAR ls_button.
+    ls_button-function  = 'SEND'.
+    ls_button-icon      = icon_mail.
+    ls_button-quickinfo = 'Send data to ONGC'.
+    ls_button-text      = 'Send'.
+    APPEND ls_button TO e_object->mt_toolbar.
+  ENDMETHOD.
+
   METHOD on_user_command.
-    CASE e_salv_function.
+    CASE e_ucomm.
       WHEN 'ALLOCATE'.
-        " Execute allocation
         PERFORM action_allocate.
       WHEN 'VALIDATE'.
-        " Validate data
         PERFORM action_validate.
       WHEN 'EDIT'.
-        " Enable edit mode
         PERFORM action_edit.
       WHEN 'SAVE'.
-        " Save data
         PERFORM action_save.
       WHEN 'RESET'.
-        " Reset data
         PERFORM action_reset.
       WHEN 'SEND'.
-        " Send to ONGC
         PERFORM action_send.
     ENDCASE.
+  ENDMETHOD.
+
+  METHOD on_data_changed.
+    " Data has been changed in the grid - changes are automatically
+    " reflected in gt_allocation since it's passed by reference
   ENDMETHOD.
 ENDCLASS.
 
@@ -278,197 +343,204 @@ FORM convert_excel_to_allocation.
 ENDFORM.
 
 *&---------------------------------------------------------------------*
+*& Form BUILD_FIELDCAT
+*& Build field catalog for ALV grid
+*&---------------------------------------------------------------------*
+FORM build_fieldcat.
+  DATA: ls_fcat    TYPE lvc_s_fcat,
+        lv_day     TYPE i,
+        lv_colname TYPE lvc_fname,
+        lv_date    TYPE datum,
+        lv_datetxt TYPE string.
+
+  CLEAR gt_fieldcat.
+
+  " Exclude checkbox
+  CLEAR ls_fcat.
+  ls_fcat-fieldname = 'EXCLUDE'.
+  ls_fcat-coltext   = 'Exclude'.
+  ls_fcat-checkbox  = abap_true.
+  ls_fcat-edit      = abap_true.
+  ls_fcat-outputlen = 8.
+  APPEND ls_fcat TO gt_fieldcat.
+
+  " State Code
+  CLEAR ls_fcat.
+  ls_fcat-fieldname = 'STATE_CODE'.
+  ls_fcat-coltext   = 'State Code'.
+  ls_fcat-outputlen = 10.
+  APPEND ls_fcat TO gt_fieldcat.
+
+  " State
+  CLEAR ls_fcat.
+  ls_fcat-fieldname = 'STATE'.
+  ls_fcat-coltext   = 'State'.
+  ls_fcat-outputlen = 20.
+  APPEND ls_fcat TO gt_fieldcat.
+
+  " Location ID
+  CLEAR ls_fcat.
+  ls_fcat-fieldname = 'LOCATION_ID'.
+  ls_fcat-coltext   = 'Location ID'.
+  ls_fcat-outputlen = 12.
+  APPEND ls_fcat TO gt_fieldcat.
+
+  " Material
+  CLEAR ls_fcat.
+  ls_fcat-fieldname = 'MATERIAL'.
+  ls_fcat-coltext   = 'Material'.
+  ls_fcat-outputlen = 18.
+  APPEND ls_fcat TO gt_fieldcat.
+
+  " Total MBG
+  CLEAR ls_fcat.
+  ls_fcat-fieldname = 'TOTAL_MBG'.
+  ls_fcat-coltext   = 'Total MBG'.
+  ls_fcat-outputlen = 15.
+  ls_fcat-do_sum    = abap_true.
+  APPEND ls_fcat TO gt_fieldcat.
+
+  " Total SCM
+  CLEAR ls_fcat.
+  ls_fcat-fieldname = 'TOTAL_SCM'.
+  ls_fcat-coltext   = 'Total Sm3'.
+  ls_fcat-outputlen = 15.
+  ls_fcat-do_sum    = abap_true.
+  APPEND ls_fcat TO gt_fieldcat.
+
+  " Daily columns (DAY01 to DAY15) - Editable
+  lv_date = s_date-low.
+  DO 15 TIMES.
+    lv_day = sy-index.
+    lv_colname = |DAY{ lv_day WIDTH = 2 ALIGN = RIGHT PAD = '0' }|.
+    lv_datetxt = |{ lv_date+6(2) }-{ lv_date+4(2) }|.
+
+    CLEAR ls_fcat.
+    ls_fcat-fieldname = lv_colname.
+    ls_fcat-coltext   = lv_datetxt.
+    ls_fcat-outputlen = 12.
+    ls_fcat-edit      = abap_true.  " Make daily columns editable
+    ls_fcat-do_sum    = abap_true.
+    APPEND ls_fcat TO gt_fieldcat.
+
+    lv_date = lv_date + 1.
+  ENDDO.
+
+  " Average GCV - Editable
+  CLEAR ls_fcat.
+  ls_fcat-fieldname = 'AVG_GCV'.
+  ls_fcat-coltext   = 'Avg GCV'.
+  ls_fcat-outputlen = 12.
+  ls_fcat-edit      = abap_true.
+  APPEND ls_fcat TO gt_fieldcat.
+
+  " Average NCV - Editable
+  CLEAR ls_fcat.
+  ls_fcat-fieldname = 'AVG_NCV'.
+  ls_fcat-coltext   = 'Avg NCV'.
+  ls_fcat-outputlen = 12.
+  ls_fcat-edit      = abap_true.
+  APPEND ls_fcat TO gt_fieldcat.
+
+  " Hidden fields
+  CLEAR ls_fcat.
+  ls_fcat-fieldname = 'FNT_START'.
+  ls_fcat-coltext   = 'FNT Start'.
+  ls_fcat-no_out    = abap_true.
+  APPEND ls_fcat TO gt_fieldcat.
+
+  CLEAR ls_fcat.
+  ls_fcat-fieldname = 'FNT_END'.
+  ls_fcat-coltext   = 'FNT End'.
+  ls_fcat-no_out    = abap_true.
+  APPEND ls_fcat TO gt_fieldcat.
+ENDFORM.
+
+*&---------------------------------------------------------------------*
 *& Form DISPLAY_ALV
 *&---------------------------------------------------------------------*
 FORM display_alv.
-  DATA: lo_functions TYPE REF TO cl_salv_functions_list,
-        lo_columns   TYPE REF TO cl_salv_columns_table,
-        lo_column    TYPE REF TO cl_salv_column,
-        lo_events    TYPE REF TO cl_salv_events_table,
-        lv_day       TYPE i,
-        lv_colname   TYPE lvc_fname,
-        lv_date      TYPE datum,
-        lv_datetxt   TYPE string.
+  " Build field catalog
+  PERFORM build_fieldcat.
 
-  TRY.
-      cl_salv_table=>factory(
-        IMPORTING
-          r_salv_table = go_alv
-        CHANGING
-          t_table      = gt_allocation
-      ).
+  " Set layout
+  gs_layout-zebra      = abap_true.
+  gs_layout-cwidth_opt = abap_true.
+  gs_layout-sel_mode   = 'A'.  " Multiple row selection
 
-      " Enable all standard functions
-      lo_functions = go_alv->get_functions( ).
-      lo_functions->set_all( abap_true ).
+  " Create docking container
+  IF go_container IS INITIAL.
+    CREATE OBJECT go_container
+      EXPORTING
+        side                    = cl_gui_docking_container=>dock_at_bottom
+        ratio                   = 95
+      EXCEPTIONS
+        cntl_error              = 1
+        cntl_system_error       = 2
+        create_error            = 3
+        lifetime_error          = 4
+        lifetime_dynpro_dynpro_link = 5
+        OTHERS                  = 6.
 
-      " Add custom buttons: Allocate, Validate, Edit, Save, Reset, Send
-      TRY.
-          lo_functions->add_function(
-            name     = 'ALLOCATE'
-            icon     = CONV #( icon_calculation )
-            text     = 'Allocate'
-            tooltip  = 'Execute state-wise allocation'
-            position = if_salv_c_function_position=>right_of_salv_functions
-          ).
-          lo_functions->add_function(
-            name     = 'VALIDATE'
-            icon     = CONV #( icon_check )
-            text     = 'Validate'
-            tooltip  = 'Validate allocation data'
-            position = if_salv_c_function_position=>right_of_salv_functions
-          ).
-          lo_functions->add_function(
-            name     = 'EDIT'
-            icon     = CONV #( icon_change )
-            text     = 'Edit'
-            tooltip  = 'Enable edit mode'
-            position = if_salv_c_function_position=>right_of_salv_functions
-          ).
-          lo_functions->add_function(
-            name     = 'SAVE'
-            icon     = CONV #( icon_system_save )
-            text     = 'Save'
-            tooltip  = 'Save allocation data'
-            position = if_salv_c_function_position=>right_of_salv_functions
-          ).
-          lo_functions->add_function(
-            name     = 'RESET'
-            icon     = CONV #( icon_refresh )
-            text     = 'Reset'
-            tooltip  = 'Reset allocation data'
-            position = if_salv_c_function_position=>right_of_salv_functions
-          ).
-          lo_functions->add_function(
-            name     = 'SEND'
-            icon     = CONV #( icon_mail )
-            text     = 'Send'
-            tooltip  = 'Send data to ONGC'
-            position = if_salv_c_function_position=>right_of_salv_functions
-          ).
-        CATCH cx_salv_wrong_call cx_salv_existing.
-      ENDTRY.
+    IF sy-subrc <> 0.
+      MESSAGE 'Error creating container' TYPE 'E'.
+      RETURN.
+    ENDIF.
+  ENDIF.
 
-      " Set up event handler
-      CREATE OBJECT go_alv_handler.
-      lo_events = go_alv->get_event( ).
-      SET HANDLER go_alv_handler->on_user_command FOR lo_events.
+  " Create ALV grid
+  IF go_alv_grid IS INITIAL.
+    CREATE OBJECT go_alv_grid
+      EXPORTING
+        i_parent = go_container
+      EXCEPTIONS
+        OTHERS   = 1.
 
-      " Set column texts
-      lo_columns = go_alv->get_columns( ).
-      lo_columns->set_optimize( abap_true ).
+    IF sy-subrc <> 0.
+      MESSAGE 'Error creating ALV grid' TYPE 'E'.
+      RETURN.
+    ENDIF.
 
-      " Exclude checkbox column
-      TRY.
-          lo_column = lo_columns->get_column( 'EXCLUDE' ).
-          lo_column->set_short_text( 'Exclude' ).
-          lo_column->set_medium_text( 'Exclude' ).
-          lo_column->set_long_text( 'Exclude from Allocation' ).
-        CATCH cx_salv_not_found.
-      ENDTRY.
+    " Create and set event handler
+    CREATE OBJECT go_alv_handler.
+    SET HANDLER go_alv_handler->on_toolbar FOR go_alv_grid.
+    SET HANDLER go_alv_handler->on_user_command FOR go_alv_grid.
+    SET HANDLER go_alv_handler->on_data_changed FOR go_alv_grid.
 
-      TRY.
-          lo_column = lo_columns->get_column( 'STATE_CODE' ).
-          lo_column->set_short_text( 'St.Code' ).
-          lo_column->set_medium_text( 'State Code' ).
-          lo_column->set_long_text( 'State Code' ).
-        CATCH cx_salv_not_found.
-      ENDTRY.
+    " Register edit events
+    CALL METHOD go_alv_grid->register_edit_event
+      EXPORTING
+        i_event_id = cl_gui_alv_grid=>mc_evt_modified
+      EXCEPTIONS
+        error      = 1
+        OTHERS     = 2.
 
-      TRY.
-          lo_column = lo_columns->get_column( 'STATE' ).
-          lo_column->set_short_text( 'State' ).
-          lo_column->set_medium_text( 'State' ).
-          lo_column->set_long_text( 'State Name' ).
-        CATCH cx_salv_not_found.
-      ENDTRY.
+    " Display ALV
+    CALL METHOD go_alv_grid->set_table_for_first_display
+      EXPORTING
+        i_structure_name = 'YGMS_S_ALLOCATION'
+        is_layout        = gs_layout
+        i_save           = 'A'
+      CHANGING
+        it_outtab        = gt_allocation
+        it_fieldcatalog  = gt_fieldcat
+      EXCEPTIONS
+        OTHERS           = 1.
 
-      TRY.
-          lo_column = lo_columns->get_column( 'LOCATION_ID' ).
-          lo_column->set_short_text( 'Location' ).
-          lo_column->set_medium_text( 'Location ID' ).
-          lo_column->set_long_text( 'Location ID' ).
-        CATCH cx_salv_not_found.
-      ENDTRY.
+    IF sy-subrc <> 0.
+      MESSAGE 'Error displaying ALV' TYPE 'E'.
+      RETURN.
+    ENDIF.
+  ELSE.
+    " Refresh existing ALV
+    CALL METHOD go_alv_grid->refresh_table_display
+      EXCEPTIONS
+        finished = 1
+        OTHERS   = 2.
+  ENDIF.
 
-      TRY.
-          lo_column = lo_columns->get_column( 'MATERIAL' ).
-          lo_column->set_short_text( 'Material' ).
-          lo_column->set_medium_text( 'Material' ).
-          lo_column->set_long_text( 'Material Number' ).
-        CATCH cx_salv_not_found.
-      ENDTRY.
-
-      TRY.
-          lo_column = lo_columns->get_column( 'TOTAL_MBG' ).
-          lo_column->set_short_text( 'Total MBG' ).
-          lo_column->set_medium_text( 'Total, MBG' ).
-          lo_column->set_long_text( 'Total Quantity (MMBTU)' ).
-        CATCH cx_salv_not_found.
-      ENDTRY.
-
-      TRY.
-          lo_column = lo_columns->get_column( 'TOTAL_SCM' ).
-          lo_column->set_short_text( 'Total Sm3' ).
-          lo_column->set_medium_text( 'Total, Sm3' ).
-          lo_column->set_long_text( 'Total Quantity (Sm3)' ).
-        CATCH cx_salv_not_found.
-      ENDTRY.
-
-      " Set column texts for daily columns (DAY01 to DAY15)
-      lv_date = s_date-low.  " Start date from selection
-      DO 15 TIMES.
-        lv_day = sy-index.
-        lv_colname = |DAY{ lv_day WIDTH = 2 ALIGN = RIGHT PAD = '0' }|.
-        lv_datetxt = |{ lv_date+6(2) }-{ lv_date+4(2) }-{ lv_date+0(4) }|.
-        TRY.
-            lo_column = lo_columns->get_column( lv_colname ).
-            lo_column->set_short_text( CONV #( lv_datetxt ) ).
-            lo_column->set_medium_text( CONV #( lv_datetxt ) ).
-            lo_column->set_long_text( CONV #( lv_datetxt ) ).
-          CATCH cx_salv_not_found.
-        ENDTRY.
-        lv_date = lv_date + 1.
-      ENDDO.
-
-      TRY.
-          lo_column = lo_columns->get_column( 'AVG_GCV' ).
-          lo_column->set_short_text( 'Avg GCV' ).
-          lo_column->set_medium_text( 'Average GCV' ).
-          lo_column->set_long_text( 'Average Gross Calorific Value' ).
-        CATCH cx_salv_not_found.
-      ENDTRY.
-
-      TRY.
-          lo_column = lo_columns->get_column( 'AVG_NCV' ).
-          lo_column->set_short_text( 'Avg NCV' ).
-          lo_column->set_medium_text( 'Average NCV' ).
-          lo_column->set_long_text( 'Average Net Calorific Value' ).
-        CATCH cx_salv_not_found.
-      ENDTRY.
-
-      " Hide internal fields
-      TRY.
-          lo_column = lo_columns->get_column( 'FNT_START' ).
-          lo_column->set_visible( abap_false ).
-        CATCH cx_salv_not_found.
-      ENDTRY.
-
-      TRY.
-          lo_column = lo_columns->get_column( 'FNT_END' ).
-          lo_column->set_visible( abap_false ).
-        CATCH cx_salv_not_found.
-      ENDTRY.
-
-      " Set ALV title
-      go_alv->get_display_settings( )->set_list_header( 'CST Purchase Data Allocation' ).
-
-      " Display
-      go_alv->display( ).
-
-    CATCH cx_salv_msg INTO DATA(lx_salv).
-      MESSAGE lx_salv TYPE 'E'.
-  ENDTRY.
+  " Write dummy output to trigger screen
+  WRITE: / 'CST Purchase Data Allocation'.
 ENDFORM.
 
 *&---------------------------------------------------------------------*
@@ -476,6 +548,11 @@ ENDFORM.
 *&---------------------------------------------------------------------*
 FORM action_save.
   DATA: lv_answer TYPE c.
+
+  " Check for pending changes
+  IF go_alv_grid IS NOT INITIAL.
+    CALL METHOD go_alv_grid->check_changed_data.
+  ENDIF.
 
   " Confirm save
   CALL FUNCTION 'POPUP_TO_CONFIRM'
@@ -510,6 +587,11 @@ ENDFORM.
 *&---------------------------------------------------------------------*
 FORM action_send.
   DATA: lv_answer TYPE c.
+
+  " Check for pending changes
+  IF go_alv_grid IS NOT INITIAL.
+    CALL METHOD go_alv_grid->check_changed_data.
+  ENDIF.
 
   " Confirm send
   CALL FUNCTION 'POPUP_TO_CONFIRM'
@@ -606,7 +688,9 @@ FORM action_allocate.
       ).
 
       " Refresh ALV
-      go_alv->refresh( ).
+      IF go_alv_grid IS NOT INITIAL.
+        CALL METHOD go_alv_grid->refresh_table_display.
+      ENDIF.
       MESSAGE |Allocation completed. { lines( gt_allocation ) } records| TYPE 'S'.
     CATCH ygms_cx_cst_error INTO DATA(lx_error).
       MESSAGE lx_error TYPE 'E'.
@@ -618,6 +702,11 @@ ENDFORM.
 *&---------------------------------------------------------------------*
 FORM action_validate.
   DATA: lv_valid TYPE abap_bool.
+
+  " Check for pending changes first
+  IF go_alv_grid IS NOT INITIAL.
+    CALL METHOD go_alv_grid->check_changed_data.
+  ENDIF.
 
   TRY.
       " Validate allocation data
@@ -637,9 +726,36 @@ ENDFORM.
 *& Form ACTION_EDIT
 *&---------------------------------------------------------------------*
 FORM action_edit.
-  " Enable edit mode in ALV
-  " Note: For full edit functionality, cl_gui_alv_grid would be needed
-  MESSAGE 'Edit mode enabled. Modify values and click Save.' TYPE 'S'.
+  DATA: ls_layout TYPE lvc_s_layo.
+
+  IF go_alv_grid IS INITIAL.
+    MESSAGE 'ALV grid not initialized' TYPE 'E'.
+    RETURN.
+  ENDIF.
+
+  " Toggle edit mode
+  IF gv_edit_mode = abap_false.
+    gv_edit_mode = abap_true.
+
+    " Enable edit mode
+    CALL METHOD go_alv_grid->set_ready_for_input
+      EXPORTING
+        i_ready_for_input = 1.
+
+    MESSAGE 'Edit mode enabled. Modify values and click Save.' TYPE 'S'.
+  ELSE.
+    gv_edit_mode = abap_false.
+
+    " Check for pending changes before disabling
+    CALL METHOD go_alv_grid->check_changed_data.
+
+    " Disable edit mode
+    CALL METHOD go_alv_grid->set_ready_for_input
+      EXPORTING
+        i_ready_for_input = 0.
+
+    MESSAGE 'Edit mode disabled.' TYPE 'S'.
+  ENDIF.
 ENDFORM.
 
 *&---------------------------------------------------------------------*
@@ -670,7 +786,9 @@ FORM action_reset.
         ).
 
         " Refresh ALV
-        go_alv->refresh( ).
+        IF go_alv_grid IS NOT INITIAL.
+          CALL METHOD go_alv_grid->refresh_table_display.
+        ENDIF.
         MESSAGE 'Data reset to original values' TYPE 'S'.
       CATCH ygms_cx_cst_error INTO DATA(lx_error).
         MESSAGE lx_error TYPE 'E'.
