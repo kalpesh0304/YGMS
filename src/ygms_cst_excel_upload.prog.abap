@@ -358,26 +358,25 @@ ENDFORM.
 FORM save_data.
   DATA: ls_purchase TYPE ygms_cst_pur,
         lv_gail_id  TYPE ygms_de_gail_id,
-        lv_guid     TYPE string,
-        lv_random   TYPE i,
-        lv_guid_raw TYPE guid_16.
+        lv_guid     TYPE guid_16,
+        lv_random   TYPE i.
 
-  " Generate GAIL ID
-  TRY.
-      CALL METHOD cl_system_uuid=>create_uuid_c16_static
-        RECEIVING
-          uuid = lv_guid_raw.
-      lv_guid = lv_guid_raw.
-    CATCH cx_sy_dyn_call_illegal_method cx_uuid_error.
-      " Fallback: Generate ID from timestamp and random number
-      CALL FUNCTION 'GENERAL_GET_RANDOM_INT'
-        EXPORTING
-          range  = 9999
-        IMPORTING
-          random = lv_random.
-      lv_guid = |{ sy-uname }{ lv_random }|.
-  ENDTRY.
-  lv_gail_id = |GAIL-{ sy-datum }-{ sy-uzeit }-{ lv_guid+0(4) }|.
+  " Generate GAIL ID using GUID_CREATE function
+  CALL FUNCTION 'GUID_CREATE'
+    IMPORTING
+      ev_guid_16 = lv_guid.
+
+  IF lv_guid IS INITIAL.
+    " Fallback: Generate ID from timestamp and random number
+    CALL FUNCTION 'GENERAL_GET_RANDOM_INT'
+      EXPORTING
+        range  = 9999
+      IMPORTING
+        random = lv_random.
+    lv_gail_id = |GAIL-{ sy-datum }-{ sy-uzeit }-{ lv_random }|.
+  ELSE.
+    lv_gail_id = |GAIL-{ sy-datum }-{ sy-uzeit }-{ lv_guid+0(4) }|.
+  ENDIF.
 
   " Prepare purchase records
   LOOP AT gt_upload_data INTO DATA(ls_upload) WHERE status = 'S'.

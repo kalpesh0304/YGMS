@@ -328,28 +328,27 @@ CLASS ygms_cl_cst_controller IMPLEMENTATION.
 
   METHOD generate_gail_id.
     " Generate unique GAIL ID: GAIL-YYYYMMDD-HHMMSS-NNNN
-    DATA: lv_guid     TYPE string,
-          lv_random   TYPE i,
-          lv_guid_raw TYPE guid_16.
+    DATA: lv_guid   TYPE guid_16,
+          lv_random TYPE i.
 
-    " Try to generate UUID, fallback to timestamp-based ID
-    TRY.
-        CALL METHOD cl_system_uuid=>create_uuid_c16_static
-          RECEIVING
-            uuid = lv_guid_raw.
-        lv_guid = lv_guid_raw.
-      CATCH cx_sy_dyn_call_illegal_method cx_uuid_error.
-        " Fallback: Generate ID from timestamp and random number
-        CALL FUNCTION 'GENERAL_GET_RANDOM_INT'
-          EXPORTING
-            range  = 9999
-          IMPORTING
-            random = lv_random.
-        lv_guid = |{ sy-uname }{ lv_random }|.
-    ENDTRY.
+    " Generate GUID using GUID_CREATE function
+    CALL FUNCTION 'GUID_CREATE'
+      IMPORTING
+        ev_guid_16 = lv_guid.
 
-    rv_gail_id = |{ ygms_if_cst_constants=>gc_gail_id_prefix }-| &&
-                 |{ sy-datum }-{ sy-uzeit }-{ lv_guid+0(4) }|.
+    IF lv_guid IS INITIAL.
+      " Fallback: Generate ID from timestamp and random number
+      CALL FUNCTION 'GENERAL_GET_RANDOM_INT'
+        EXPORTING
+          range  = 9999
+        IMPORTING
+          random = lv_random.
+      rv_gail_id = |{ ygms_if_cst_constants=>gc_gail_id_prefix }-| &&
+                   |{ sy-datum }-{ sy-uzeit }-{ lv_random }|.
+    ELSE.
+      rv_gail_id = |{ ygms_if_cst_constants=>gc_gail_id_prefix }-| &&
+                   |{ sy-datum }-{ sy-uzeit }-{ lv_guid+0(4) }|.
+    ENDIF.
   ENDMETHOD.
 
 ENDCLASS.
