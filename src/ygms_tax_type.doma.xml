@@ -8,7 +8,7 @@
     <DATATYPE>CHAR</DATATYPE>
     <LENG>000003</LENG>
     <OUTPUTLEN>000003</OUTPUTLEN>
-    <DDTEXT>Tax Type (CST/GST)</DDTEXT>
+    <DDTEXT>Tax Type</DDTEXT>
    </DD01V>
    <DD07V_TAB>
     <DD07V>
@@ -23,7 +23,7 @@
      <VALPOS>0002</VALPOS>
      <DDLANGUAGE>E</DDLANGUAGE>
      <DOMVALUE_L>GST</DOMVALUE_L>
-     <DDTEXT>Goods and Services Tax</DDTEXT>
+     <DDTEXT>Goods Services Tax</DDTEXT>
     </DD07V>
    </DD07V_TAB>
   </asx:values>

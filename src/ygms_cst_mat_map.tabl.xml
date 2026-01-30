@@ -9,6 +9,7 @@
     <CLIDEP>X</CLIDEP>
     <DDTEXT>Material Mapping Table</DDTEXT>
     <CONTFLAG>C</CONTFLAG>
+    <EXCLASS>1</EXCLASS>
    </DD02V>
    <DD09L>
     <TABNAME>YGMS_CST_MAT_MAP</TABNAME>

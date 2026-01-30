@@ -5,14 +5,14 @@
    <DD40V>
     <TYPENAME>YGMS_TT_STATE_EXCL</TYPENAME>
     <DDLANGUAGE>E</DDLANGUAGE>
-    <ROWTYPE>YGMS_STATE_CD</ROWTYPE>
+    <ROWTYPE>YGMS_DE_STATE_CD</ROWTYPE>
     <ROWKIND>E</ROWKIND>
     <DATATYPE>CHAR</DATATYPE>
     <LENG>000002</LENG>
     <ACCESSMODE>T</ACCESSMODE>
     <KEYDEF>D</KEYDEF>
     <KEYKIND>N</KEYKIND>
-    <DDTEXT>Table Type for State Exclusion List</DDTEXT>
+    <DDTEXT>Table Type for State Exclusion</DDTEXT>
    </DD40V>
   </asx:values>
  </asx:abap>
