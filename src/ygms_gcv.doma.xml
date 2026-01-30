@@ -9,7 +9,7 @@
     <LENG>000010</LENG>
     <DECIMALS>000003</DECIMALS>
     <OUTPUTLEN>000013</OUTPUTLEN>
-    <DDTEXT>Gross Calorific Value</DDTEXT>
+    <DDTEXT>Gross Calorific Val</DDTEXT>
    </DD01V>
   </asx:values>
  </asx:abap>

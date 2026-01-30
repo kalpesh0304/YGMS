@@ -8,7 +8,7 @@
     <DATATYPE>CHAR</DATATYPE>
     <LENG>000032</LENG>
     <OUTPUTLEN>000032</OUTPUTLEN>
-    <DDTEXT>Audit Log Entry ID (GUID)</DDTEXT>
+    <DDTEXT>Audit Log Entry ID</DDTEXT>
    </DD01V>
   </asx:values>
  </asx:abap>

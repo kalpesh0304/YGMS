@@ -8,7 +8,7 @@
     <DATATYPE>CHAR</DATATYPE>
     <LENG>000002</LENG>
     <OUTPUTLEN>000002</OUTPUTLEN>
-    <DDTEXT>State Code (2-digit)</DDTEXT>
+    <DDTEXT>State Code</DDTEXT>
    </DD01V>
   </asx:values>
  </asx:abap>
