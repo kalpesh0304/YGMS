@@ -5,6 +5,22 @@
 REPORT ygms_cst_purchase_main.
 
 *----------------------------------------------------------------------*
+* Type definitions for Excel upload
+*----------------------------------------------------------------------*
+TYPES: BEGIN OF ty_excel_data,
+         gas_day      TYPE datum,
+         location_id  TYPE char10,
+         material     TYPE matnr,
+         state        TYPE char30,
+         state_code   TYPE char2,
+         qty_mbg      TYPE p LENGTH 15 DECIMALS 3,
+         qty_scm      TYPE p LENGTH 15 DECIMALS 3,
+         gcv          TYPE p LENGTH 10 DECIMALS 3,
+         ncv          TYPE p LENGTH 10 DECIMALS 3,
+         tax_type     TYPE char3,
+       END OF ty_excel_data.
+
+*----------------------------------------------------------------------*
 * Selection Screen
 *----------------------------------------------------------------------*
 SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE text-001.
@@ -13,12 +29,18 @@ SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE text-001.
   PARAMETERS:     p_exst   TYPE char2.  "Excluded state code
 SELECTION-SCREEN END OF BLOCK b1.
 
-SELECTION-SCREEN BEGIN OF BLOCK b2 WITH FRAME TITLE TEXT-002.
-  PARAMETERS: p_disp RADIOBUTTON GROUP rb1 DEFAULT 'X',
-              p_save RADIOBUTTON GROUP rb1,
-              p_send RADIOBUTTON GROUP rb1.
-  PARAMETERS: p_email TYPE ad_smtpadr.
+SELECTION-SCREEN BEGIN OF BLOCK b2 WITH FRAME TITLE text-002.
+  PARAMETERS: p_db   RADIOBUTTON GROUP rb1 DEFAULT 'X',  "From Database
+              p_upld RADIOBUTTON GROUP rb1.               "From Excel
+  PARAMETERS: p_file TYPE rlgrap-filename MODIF ID upl.
 SELECTION-SCREEN END OF BLOCK b2.
+
+SELECTION-SCREEN BEGIN OF BLOCK b3 WITH FRAME TITLE text-003.
+  PARAMETERS: p_disp RADIOBUTTON GROUP rb2 DEFAULT 'X',
+              p_save RADIOBUTTON GROUP rb2,
+              p_send RADIOBUTTON GROUP rb2.
+  PARAMETERS: p_email TYPE ad_smtpadr.
+SELECTION-SCREEN END OF BLOCK b3.
 
 *----------------------------------------------------------------------*
 * Global Data
@@ -27,7 +49,29 @@ DATA: go_controller   TYPE REF TO ygms_cl_cst_controller,
       gt_allocation   TYPE ygms_tt_allocation,
       gt_messages     TYPE bapiret2_t,
       gv_gail_id      TYPE ygms_de_gail_id,
-      gt_excl_states  TYPE ygms_tt_state_excl.
+      gt_excl_states  TYPE ygms_tt_state_excl,
+      gt_excel_data   TYPE TABLE OF ty_excel_data.
+
+*----------------------------------------------------------------------*
+* At Selection Screen Output
+*----------------------------------------------------------------------*
+AT SELECTION-SCREEN OUTPUT.
+  LOOP AT SCREEN.
+    IF screen-group1 = 'UPL'.
+      IF p_upld = abap_true.
+        screen-active = 1.
+      ELSE.
+        screen-active = 0.
+      ENDIF.
+      MODIFY SCREEN.
+    ENDIF.
+  ENDLOOP.
+
+*----------------------------------------------------------------------*
+* At Selection Screen on Value Request
+*----------------------------------------------------------------------*
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_file.
+  PERFORM f4_file_path.
 
 *----------------------------------------------------------------------*
 * Initialization
@@ -60,14 +104,20 @@ START-OF-SELECTION.
   ENDIF.
 
   TRY.
-      " Execute allocation
-      go_controller->execute_allocation(
-        EXPORTING
-          it_excluded_states = gt_excl_states
-        IMPORTING
-          et_allocation      = gt_allocation
-          et_messages        = gt_messages
-      ).
+      IF p_upld = abap_true.
+        " Upload from Excel
+        PERFORM upload_excel.
+        PERFORM convert_excel_to_allocation.
+      ELSE.
+        " Execute allocation from database
+        go_controller->execute_allocation(
+          EXPORTING
+            it_excluded_states = gt_excl_states
+          IMPORTING
+            et_allocation      = gt_allocation
+            et_messages        = gt_messages
+        ).
+      ENDIF.
 
       " Process based on selected option
       CASE abap_true.
@@ -107,6 +157,104 @@ START-OF-SELECTION.
     CATCH ygms_cx_cst_error INTO DATA(lx_error).
       MESSAGE lx_error TYPE 'E'.
   ENDTRY.
+
+*&---------------------------------------------------------------------*
+*& Form F4_FILE_PATH
+*& File open dialog for Excel file selection
+*&---------------------------------------------------------------------*
+FORM f4_file_path.
+  DATA: lt_file_table TYPE filetable,
+        lv_rc         TYPE i,
+        lv_action     TYPE i.
+
+  cl_gui_frontend_services=>file_open_dialog(
+    EXPORTING
+      window_title      = 'Select Excel File'
+      default_extension = 'XLSX'
+      file_filter       = 'Excel Files (*.xlsx;*.xls)|*.xlsx;*.xls|All Files (*.*)|*.*'
+    CHANGING
+      file_table        = lt_file_table
+      rc                = lv_rc
+      user_action       = lv_action
+    EXCEPTIONS
+      OTHERS            = 1
+  ).
+
+  IF sy-subrc = 0 AND lv_action = cl_gui_frontend_services=>action_ok.
+    READ TABLE lt_file_table INTO DATA(ls_file) INDEX 1.
+    IF sy-subrc = 0.
+      p_file = ls_file-filename.
+    ENDIF.
+  ENDIF.
+ENDFORM.
+
+*&---------------------------------------------------------------------*
+*& Form UPLOAD_EXCEL
+*& Upload Excel file and convert to internal table
+*&---------------------------------------------------------------------*
+FORM upload_excel.
+  DATA: lt_raw_data TYPE truxs_t_text_data.
+
+  IF p_file IS INITIAL.
+    MESSAGE 'Please select an Excel file' TYPE 'E'.
+    RETURN.
+  ENDIF.
+
+  " Upload file
+  CALL FUNCTION 'TEXT_CONVERT_XLS_TO_SAP'
+    EXPORTING
+      i_line_header        = 'X'
+      i_tab_raw_data       = lt_raw_data
+      i_filename           = p_file
+    TABLES
+      i_tab_converted_data = gt_excel_data
+    EXCEPTIONS
+      conversion_failed    = 1
+      OTHERS               = 2.
+
+  IF sy-subrc <> 0.
+    MESSAGE 'Error uploading Excel file' TYPE 'E'.
+  ELSE.
+    MESSAGE |{ lines( gt_excel_data ) } records uploaded from Excel| TYPE 'S'.
+  ENDIF.
+ENDFORM.
+
+*&---------------------------------------------------------------------*
+*& Form CONVERT_EXCEL_TO_ALLOCATION
+*& Convert uploaded Excel data to allocation format
+*&---------------------------------------------------------------------*
+FORM convert_excel_to_allocation.
+  DATA: ls_allocation TYPE ygms_s_allocation.
+
+  CLEAR gt_allocation.
+
+  LOOP AT gt_excel_data INTO DATA(ls_excel).
+    CLEAR ls_allocation.
+
+    ls_allocation-gas_day       = ls_excel-gas_day.
+    ls_allocation-location_id   = ls_excel-location_id.
+    ls_allocation-material      = ls_excel-material.
+    ls_allocation-state         = ls_excel-state.
+    ls_allocation-state_code    = ls_excel-state_code.
+    ls_allocation-supply_qty_mbg = ls_excel-qty_mbg.
+    ls_allocation-supply_qty_scm = ls_excel-qty_scm.
+    ls_allocation-alloc_qty_mbg = ls_excel-qty_mbg.
+    ls_allocation-alloc_qty_scm = ls_excel-qty_scm.
+    ls_allocation-alloc_pct     = 100.
+    ls_allocation-gcv           = ls_excel-gcv.
+    ls_allocation-ncv           = ls_excel-ncv.
+    ls_allocation-tax_type      = ls_excel-tax_type.
+
+    " Check if state is excluded
+    READ TABLE gt_excl_states TRANSPORTING NO FIELDS
+         WITH KEY table_line = ls_allocation-state_code.
+    IF sy-subrc = 0.
+      ls_allocation-excluded = abap_true.
+    ENDIF.
+
+    APPEND ls_allocation TO gt_allocation.
+  ENDLOOP.
+ENDFORM.
 
 *&---------------------------------------------------------------------*
 *& Form DISPLAY_ALV
