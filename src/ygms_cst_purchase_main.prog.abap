@@ -177,14 +177,51 @@ AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_file.
   PERFORM f4_file_path.
 
 *----------------------------------------------------------------------*
+* At Selection Screen - Date Validation
+*----------------------------------------------------------------------*
+AT SELECTION-SCREEN ON s_date.
+  " Validate date range is for first 15 days or last 15 days of month
+  PERFORM validate_fortnight_dates.
+
+*----------------------------------------------------------------------*
 * Initialization
 *----------------------------------------------------------------------*
 INITIALIZATION.
-  " Set default date range (current month)
+  " Set default date range based on current fortnight
+  DATA: lv_current_day TYPE i,
+        lv_last_day    TYPE datum.
+
+  lv_current_day = sy-datum+6(2).
+
   s_date-sign   = 'I'.
   s_date-option = 'BT'.
-  s_date-low    = sy-datum - sy-datum+6(2) + 1.
-  s_date-high   = sy-datum.
+
+  IF lv_current_day <= 15.
+    " First fortnight: 1st to 15th
+    s_date-low     = sy-datum.
+    s_date-low+6(2) = '01'.
+    s_date-high    = sy-datum.
+    s_date-high+6(2) = '15'.
+  ELSE.
+    " Second fortnight: 16th to end of month
+    s_date-low     = sy-datum.
+    s_date-low+6(2) = '16'.
+    " Get last day of current month
+    CALL FUNCTION 'RP_LAST_DAY_OF_MONTHS'
+      EXPORTING
+        day_in            = sy-datum
+      IMPORTING
+        last_day_of_month = lv_last_day
+      EXCEPTIONS
+        OTHERS            = 1.
+    IF sy-subrc = 0.
+      s_date-high = lv_last_day.
+    ELSE.
+      s_date-high = sy-datum.
+      s_date-high+6(2) = '28'.  " Fallback
+    ENDIF.
+  ENDIF.
+
   APPEND s_date.
 
 *----------------------------------------------------------------------*
@@ -794,4 +831,64 @@ FORM action_reset.
         MESSAGE lx_error TYPE 'E'.
     ENDTRY.
   ENDIF.
+ENDFORM.
+
+*&---------------------------------------------------------------------*
+*& Form VALIDATE_FORTNIGHT_DATES
+*& Validate date range is for first or second fortnight of month
+*&---------------------------------------------------------------------*
+FORM validate_fortnight_dates.
+  DATA: lv_from_day   TYPE i,
+        lv_to_day     TYPE i,
+        lv_from_month TYPE i,
+        lv_to_month   TYPE i,
+        lv_from_year  TYPE i,
+        lv_to_year    TYPE i,
+        lv_last_day   TYPE datum.
+
+  " Get day, month, year from dates
+  lv_from_day   = s_date-low+6(2).
+  lv_to_day     = s_date-high+6(2).
+  lv_from_month = s_date-low+4(2).
+  lv_to_month   = s_date-high+4(2).
+  lv_from_year  = s_date-low+0(4).
+  lv_to_year    = s_date-high+0(4).
+
+  " Dates must be in same month and year
+  IF lv_from_month <> lv_to_month OR lv_from_year <> lv_to_year.
+    MESSAGE 'Date range must be within same month' TYPE 'E'.
+    RETURN.
+  ENDIF.
+
+  " Get last day of month
+  CALL FUNCTION 'RP_LAST_DAY_OF_MONTHS'
+    EXPORTING
+      day_in            = s_date-low
+    IMPORTING
+      last_day_of_month = lv_last_day
+    EXCEPTIONS
+      day_in_no_date    = 1
+      OTHERS            = 2.
+
+  IF sy-subrc <> 0.
+    lv_last_day = s_date-low.
+    lv_last_day+6(2) = '28'.  " Fallback
+  ENDIF.
+
+  DATA(lv_month_last_day) = CONV i( lv_last_day+6(2) ).
+
+  " Check for first fortnight (1st to 15th)
+  IF lv_from_day = 1 AND lv_to_day = 15.
+    " Valid first fortnight
+    RETURN.
+  ENDIF.
+
+  " Check for second fortnight (16th to end of month)
+  IF lv_from_day = 16 AND lv_to_day = lv_month_last_day.
+    " Valid second fortnight
+    RETURN.
+  ENDIF.
+
+  " Invalid date range
+  MESSAGE |Date range must be 1st-15th or 16th-{ lv_month_last_day } of month| TYPE 'E'.
 ENDFORM.
