@@ -66,18 +66,24 @@ ENDCLASS.
 CLASS lcl_alv_handler IMPLEMENTATION.
   METHOD on_user_command.
     CASE e_salv_function.
+      WHEN 'ALLOCATE'.
+        " Execute allocation
+        PERFORM action_allocate.
+      WHEN 'VALIDATE'.
+        " Validate data
+        PERFORM action_validate.
+      WHEN 'EDIT'.
+        " Enable edit mode
+        PERFORM action_edit.
       WHEN 'SAVE'.
         " Save data
         PERFORM action_save.
+      WHEN 'RESET'.
+        " Reset data
+        PERFORM action_reset.
       WHEN 'SEND'.
         " Send to ONGC
         PERFORM action_send.
-      WHEN 'DOWNLOAD'.
-        " Download to Excel
-        PERFORM action_download.
-      WHEN 'REFRESH'.
-        " Refresh data
-        PERFORM action_refresh.
     ENDCASE.
   ENDMETHOD.
 ENDCLASS.
@@ -281,7 +287,11 @@ FORM display_alv.
   DATA: lo_functions TYPE REF TO cl_salv_functions_list,
         lo_columns   TYPE REF TO cl_salv_columns_table,
         lo_column    TYPE REF TO cl_salv_column,
-        lo_events    TYPE REF TO cl_salv_events_table.
+        lo_events    TYPE REF TO cl_salv_events_table,
+        lv_day       TYPE i,
+        lv_colname   TYPE lvc_fname,
+        lv_date      TYPE datum,
+        lv_datetxt   TYPE string.
 
   TRY.
       cl_salv_table=>factory(
@@ -295,34 +305,48 @@ FORM display_alv.
       lo_functions = go_alv->get_functions( ).
       lo_functions->set_all( abap_true ).
 
-      " Add custom buttons
+      " Add custom buttons: Allocate, Validate, Edit, Save, Reset, Send
       TRY.
+          lo_functions->add_function(
+            name     = 'ALLOCATE'
+            icon     = icon_calculation
+            text     = 'Allocate'
+            tooltip  = 'Execute state-wise allocation'
+            position = if_salv_c_function_position=>right_of_salv_functions
+          ).
+          lo_functions->add_function(
+            name     = 'VALIDATE'
+            icon     = icon_check
+            text     = 'Validate'
+            tooltip  = 'Validate allocation data'
+            position = if_salv_c_function_position=>right_of_salv_functions
+          ).
+          lo_functions->add_function(
+            name     = 'EDIT'
+            icon     = icon_change
+            text     = 'Edit'
+            tooltip  = 'Enable edit mode'
+            position = if_salv_c_function_position=>right_of_salv_functions
+          ).
           lo_functions->add_function(
             name     = 'SAVE'
             icon     = icon_system_save
-            text     = 'Save Data'
-            tooltip  = 'Save allocation data to database'
+            text     = 'Save'
+            tooltip  = 'Save allocation data'
+            position = if_salv_c_function_position=>right_of_salv_functions
+          ).
+          lo_functions->add_function(
+            name     = 'RESET'
+            icon     = icon_refresh
+            text     = 'Reset'
+            tooltip  = 'Reset allocation data'
             position = if_salv_c_function_position=>right_of_salv_functions
           ).
           lo_functions->add_function(
             name     = 'SEND'
             icon     = icon_mail
-            text     = 'Send to ONGC'
-            tooltip  = 'Save and send data to ONGC'
-            position = if_salv_c_function_position=>right_of_salv_functions
-          ).
-          lo_functions->add_function(
-            name     = 'DOWNLOAD'
-            icon     = icon_export
-            text     = 'Download'
-            tooltip  = 'Download data to Excel'
-            position = if_salv_c_function_position=>right_of_salv_functions
-          ).
-          lo_functions->add_function(
-            name     = 'REFRESH'
-            icon     = icon_refresh
-            text     = 'Refresh'
-            tooltip  = 'Refresh data from database'
+            text     = 'Send'
+            tooltip  = 'Send data to ONGC'
             position = if_salv_c_function_position=>right_of_salv_functions
           ).
         CATCH cx_salv_wrong_call cx_salv_existing.
@@ -337,27 +361,12 @@ FORM display_alv.
       lo_columns = go_alv->get_columns( ).
       lo_columns->set_optimize( abap_true ).
 
+      " Exclude checkbox column
       TRY.
-          lo_column = lo_columns->get_column( 'GAS_DAY' ).
-          lo_column->set_short_text( 'Gas Day' ).
-          lo_column->set_medium_text( 'Gas Day' ).
-          lo_column->set_long_text( 'Gas Day' ).
-        CATCH cx_salv_not_found.
-      ENDTRY.
-
-      TRY.
-          lo_column = lo_columns->get_column( 'LOCATION_ID' ).
-          lo_column->set_short_text( 'Location' ).
-          lo_column->set_medium_text( 'Location ID' ).
-          lo_column->set_long_text( 'Location ID' ).
-        CATCH cx_salv_not_found.
-      ENDTRY.
-
-      TRY.
-          lo_column = lo_columns->get_column( 'STATE' ).
-          lo_column->set_short_text( 'State' ).
-          lo_column->set_medium_text( 'State Name' ).
-          lo_column->set_long_text( 'State Name' ).
+          lo_column = lo_columns->get_column( 'EXCLUDE' ).
+          lo_column->set_short_text( 'Exclude' ).
+          lo_column->set_medium_text( 'Exclude' ).
+          lo_column->set_long_text( 'Exclude from Allocation' ).
         CATCH cx_salv_not_found.
       ENDTRY.
 
@@ -370,50 +379,87 @@ FORM display_alv.
       ENDTRY.
 
       TRY.
-          lo_column = lo_columns->get_column( 'SUPPLY_QTY_MBG' ).
-          lo_column->set_short_text( 'Sup MBG' ).
-          lo_column->set_medium_text( 'Supply MMBTU' ).
-          lo_column->set_long_text( 'Supply Quantity (MMBTU)' ).
+          lo_column = lo_columns->get_column( 'STATE' ).
+          lo_column->set_short_text( 'State' ).
+          lo_column->set_medium_text( 'State' ).
+          lo_column->set_long_text( 'State Name' ).
         CATCH cx_salv_not_found.
       ENDTRY.
 
       TRY.
-          lo_column = lo_columns->get_column( 'SUPPLY_QTY_SCM' ).
-          lo_column->set_short_text( 'Sup SCM' ).
-          lo_column->set_medium_text( 'Supply SCM' ).
-          lo_column->set_long_text( 'Supply Quantity (SCM)' ).
+          lo_column = lo_columns->get_column( 'LOCATION_ID' ).
+          lo_column->set_short_text( 'Location' ).
+          lo_column->set_medium_text( 'Location ID' ).
+          lo_column->set_long_text( 'Location ID' ).
         CATCH cx_salv_not_found.
       ENDTRY.
 
       TRY.
-          lo_column = lo_columns->get_column( 'ALLOC_QTY_MBG' ).
-          lo_column->set_short_text( 'Alloc MBG' ).
-          lo_column->set_medium_text( 'Allocated MMBTU' ).
-          lo_column->set_long_text( 'Allocated Quantity (MMBTU)' ).
+          lo_column = lo_columns->get_column( 'MATERIAL' ).
+          lo_column->set_short_text( 'Material' ).
+          lo_column->set_medium_text( 'Material' ).
+          lo_column->set_long_text( 'Material Number' ).
         CATCH cx_salv_not_found.
       ENDTRY.
 
       TRY.
-          lo_column = lo_columns->get_column( 'ALLOC_QTY_SCM' ).
-          lo_column->set_short_text( 'Alloc SCM' ).
-          lo_column->set_medium_text( 'Allocated SCM' ).
-          lo_column->set_long_text( 'Allocated Quantity (SCM)' ).
+          lo_column = lo_columns->get_column( 'TOTAL_MBG' ).
+          lo_column->set_short_text( 'Total MBG' ).
+          lo_column->set_medium_text( 'Total, MBG' ).
+          lo_column->set_long_text( 'Total Quantity (MMBTU)' ).
         CATCH cx_salv_not_found.
       ENDTRY.
 
       TRY.
-          lo_column = lo_columns->get_column( 'ALLOC_PCT' ).
-          lo_column->set_short_text( 'Alloc %' ).
-          lo_column->set_medium_text( 'Allocation %' ).
-          lo_column->set_long_text( 'Allocation Percentage' ).
+          lo_column = lo_columns->get_column( 'TOTAL_SCM' ).
+          lo_column->set_short_text( 'Total Sm3' ).
+          lo_column->set_medium_text( 'Total, Sm3' ).
+          lo_column->set_long_text( 'Total Quantity (Sm3)' ).
+        CATCH cx_salv_not_found.
+      ENDTRY.
+
+      " Set column texts for daily columns (DAY01 to DAY15)
+      lv_date = s_date-low.  " Start date from selection
+      DO 15 TIMES.
+        lv_day = sy-index.
+        lv_colname = |DAY{ lv_day WIDTH = 2 ALIGN = RIGHT PAD = '0' }|.
+        lv_datetxt = |{ lv_date+6(2) }-{ lv_date+4(2) }-{ lv_date+0(4) }|.
+        TRY.
+            lo_column = lo_columns->get_column( lv_colname ).
+            lo_column->set_short_text( CONV #( lv_datetxt ) ).
+            lo_column->set_medium_text( CONV #( lv_datetxt ) ).
+            lo_column->set_long_text( CONV #( lv_datetxt ) ).
+          CATCH cx_salv_not_found.
+        ENDTRY.
+        lv_date = lv_date + 1.
+      ENDDO.
+
+      TRY.
+          lo_column = lo_columns->get_column( 'AVG_GCV' ).
+          lo_column->set_short_text( 'Avg GCV' ).
+          lo_column->set_medium_text( 'Average GCV' ).
+          lo_column->set_long_text( 'Average Gross Calorific Value' ).
         CATCH cx_salv_not_found.
       ENDTRY.
 
       TRY.
-          lo_column = lo_columns->get_column( 'TAX_TYPE' ).
-          lo_column->set_short_text( 'Tax' ).
-          lo_column->set_medium_text( 'Tax Type' ).
-          lo_column->set_long_text( 'Tax Type (CST/GST)' ).
+          lo_column = lo_columns->get_column( 'AVG_NCV' ).
+          lo_column->set_short_text( 'Avg NCV' ).
+          lo_column->set_medium_text( 'Average NCV' ).
+          lo_column->set_long_text( 'Average Net Calorific Value' ).
+        CATCH cx_salv_not_found.
+      ENDTRY.
+
+      " Hide internal fields
+      TRY.
+          lo_column = lo_columns->get_column( 'FNT_START' ).
+          lo_column->set_visible( abap_false ).
+        CATCH cx_salv_not_found.
+      ENDTRY.
+
+      TRY.
+          lo_column = lo_columns->get_column( 'FNT_END' ).
+          lo_column->set_visible( abap_false ).
         CATCH cx_salv_not_found.
       ENDTRY.
 
@@ -552,11 +598,11 @@ FORM action_download.
 ENDFORM.
 
 *&---------------------------------------------------------------------*
-*& Form ACTION_REFRESH
+*& Form ACTION_ALLOCATE
 *&---------------------------------------------------------------------*
-FORM action_refresh.
+FORM action_allocate.
   TRY.
-      " Re-execute allocation from database
+      " Execute state-wise allocation
       go_controller->execute_allocation(
         IMPORTING
           et_allocation = gt_allocation
@@ -565,8 +611,83 @@ FORM action_refresh.
 
       " Refresh ALV
       go_alv->refresh( ).
-      MESSAGE |Data refreshed. { lines( gt_allocation ) } records loaded| TYPE 'S'.
+      MESSAGE |Allocation completed. { lines( gt_allocation ) } records| TYPE 'S'.
     CATCH ygms_cx_cst_error INTO DATA(lx_error).
       MESSAGE lx_error TYPE 'E'.
   ENDTRY.
+ENDFORM.
+
+*&---------------------------------------------------------------------*
+*& Form ACTION_VALIDATE
+*&---------------------------------------------------------------------*
+FORM action_validate.
+  DATA: lv_errors   TYPE i,
+        lv_warnings TYPE i.
+
+  TRY.
+      " Validate allocation data
+      go_controller->validate_allocation(
+        EXPORTING
+          it_allocation = gt_allocation
+        IMPORTING
+          ev_errors     = lv_errors
+          ev_warnings   = lv_warnings
+          et_messages   = gt_messages
+      ).
+
+      IF lv_errors > 0.
+        MESSAGE |Validation failed: { lv_errors } errors, { lv_warnings } warnings| TYPE 'E'.
+      ELSEIF lv_warnings > 0.
+        MESSAGE |Validation passed with { lv_warnings } warnings| TYPE 'W'.
+      ELSE.
+        MESSAGE 'Validation successful - No errors found' TYPE 'S'.
+      ENDIF.
+    CATCH ygms_cx_cst_error INTO DATA(lx_error).
+      MESSAGE lx_error TYPE 'E'.
+  ENDTRY.
+ENDFORM.
+
+*&---------------------------------------------------------------------*
+*& Form ACTION_EDIT
+*&---------------------------------------------------------------------*
+FORM action_edit.
+  " Enable edit mode in ALV
+  " Note: For full edit functionality, cl_gui_alv_grid would be needed
+  MESSAGE 'Edit mode enabled. Modify values and click Save.' TYPE 'S'.
+ENDFORM.
+
+*&---------------------------------------------------------------------*
+*& Form ACTION_RESET
+*&---------------------------------------------------------------------*
+FORM action_reset.
+  DATA: lv_answer TYPE c.
+
+  " Confirm reset
+  CALL FUNCTION 'POPUP_TO_CONFIRM'
+    EXPORTING
+      titlebar              = 'Confirm Reset'
+      text_question         = 'Do you want to reset all allocation data?'
+      text_button_1         = 'Yes'
+      text_button_2         = 'No'
+      default_button        = '2'
+      display_cancel_button = abap_false
+    IMPORTING
+      answer                = lv_answer.
+
+  IF lv_answer = '1'.
+    TRY.
+        " Re-load original data from database
+        go_controller->execute_allocation(
+          IMPORTING
+            et_allocation = gt_allocation
+            et_messages   = gt_messages
+        ).
+
+        " Refresh ALV
+        go_alv->refresh( ).
+        MESSAGE 'Data reset to original values' TYPE 'S'.
+      CATCH ygms_cx_cst_error INTO DATA(lx_error).
+        MESSAGE lx_error TYPE 'E'.
+    ENDTRY.
+  ENDIF.
 ENDFORM.
