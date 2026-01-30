@@ -69,7 +69,7 @@ CLASS ygms_cl_cst_excel_handler DEFINITION
       IMPORTING
         iv_number_string TYPE string
       RETURNING
-        VALUE(rv_number) TYPE p LENGTH 15 DECIMALS 3.
+        VALUE(rv_number) TYPE ygms_de_qty_mbg.
 
     METHODS add_message
       IMPORTING
