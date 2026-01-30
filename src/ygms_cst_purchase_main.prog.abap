@@ -7,10 +7,10 @@ REPORT ygms_cst_purchase_main.
 *----------------------------------------------------------------------*
 * Selection Screen
 *----------------------------------------------------------------------*
-SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE TEXT-001.
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE text-001.
   PARAMETERS:     p_loc    TYPE ygms_de_loc_id OBLIGATORY.
   SELECT-OPTIONS: s_date   FOR sy-datum OBLIGATORY.
-  SELECT-OPTIONS: s_exst   FOR sy-langu NO INTERVALS.
+  PARAMETERS:     p_exst   TYPE char2.  "Excluded state code
 SELECTION-SCREEN END OF BLOCK b1.
 
 SELECTION-SCREEN BEGIN OF BLOCK b2 WITH FRAME TITLE TEXT-002.
@@ -23,18 +23,16 @@ SELECTION-SCREEN END OF BLOCK b2.
 *----------------------------------------------------------------------*
 * Global Data
 *----------------------------------------------------------------------*
-DATA: go_controller  TYPE REF TO ygms_cl_cst_controller,
-      gt_allocation  TYPE ygms_tt_allocation,
-      gt_messages    TYPE bapiret2_t,
-      gv_gail_id     TYPE ygms_de_gail_id.
+DATA: go_controller   TYPE REF TO ygms_cl_cst_controller,
+      gt_allocation   TYPE ygms_tt_allocation,
+      gt_messages     TYPE bapiret2_t,
+      gv_gail_id      TYPE ygms_de_gail_id,
+      gt_excl_states  TYPE ygms_tt_state_excl.
 
 *----------------------------------------------------------------------*
 * Initialization
 *----------------------------------------------------------------------*
 INITIALIZATION.
-  TEXT-001 = 'Selection Criteria'.
-  TEXT-002 = 'Processing Options'.
-
   " Set default date range (current month)
   s_date-sign   = 'I'.
   s_date-option = 'BT'.
@@ -56,11 +54,16 @@ START-OF-SELECTION.
     iv_date_to     = s_date-high
   ).
 
+  " Build exclusion table from parameter
+  IF p_exst IS NOT INITIAL.
+    APPEND p_exst TO gt_excl_states.
+  ENDIF.
+
   TRY.
       " Execute allocation
       go_controller->execute_allocation(
         EXPORTING
-          it_excluded_states = s_exst[]
+          it_excluded_states = gt_excl_states
         IMPORTING
           et_allocation      = gt_allocation
           et_messages        = gt_messages
