@@ -6,7 +6,7 @@ CLASS ygms_cl_cst_data_handler DEFINITION
     "! <p class="shorttext synchronized" lang="en">Get B2B receipt data</p>
     METHODS get_b2b_data
       IMPORTING
-        iv_location_id   TYPE ygms_loc_id
+        iv_location_id   TYPE ygms_de_loc_id
         iv_date_from     TYPE datum
         iv_date_to       TYPE datum
       RETURNING
@@ -15,7 +15,7 @@ CLASS ygms_cl_cst_data_handler DEFINITION
     "! <p class="shorttext synchronized" lang="en">Get material mapping</p>
     METHODS get_material_mapping
       IMPORTING
-        iv_location_id   TYPE ygms_loc_id
+        iv_location_id   TYPE ygms_de_loc_id
       RETURNING
         VALUE(rt_mapping) TYPE STANDARD TABLE.
 

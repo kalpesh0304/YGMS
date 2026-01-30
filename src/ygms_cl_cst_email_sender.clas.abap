@@ -7,7 +7,7 @@ CLASS ygms_cl_cst_email_sender DEFINITION
     METHODS send
       IMPORTING
         iv_email_address TYPE ad_smtpadr OPTIONAL
-        iv_location_id   TYPE ygms_loc_id
+        iv_location_id   TYPE ygms_de_loc_id
         iv_date_from     TYPE datum
         iv_date_to       TYPE datum
       RAISING

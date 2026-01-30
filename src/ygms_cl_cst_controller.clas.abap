@@ -11,7 +11,7 @@ CLASS ygms_cl_cst_controller DEFINITION
     "! <p class="shorttext synchronized" lang="en">Set selection parameters</p>
     METHODS set_selection
       IMPORTING
-        iv_location_id TYPE ygms_loc_id
+        iv_location_id TYPE ygms_de_loc_id
         iv_date_from   TYPE datum
         iv_date_to     TYPE datum.
 
@@ -30,7 +30,7 @@ CLASS ygms_cl_cst_controller DEFINITION
       IMPORTING
         it_data     TYPE ygms_tt_allocation
       EXPORTING
-        ev_gail_id  TYPE ygms_gail_id
+        ev_gail_id  TYPE ygms_de_gail_id
         et_messages TYPE bapiret2_t
       RAISING
         ygms_cx_cst_error.
@@ -47,13 +47,13 @@ CLASS ygms_cl_cst_controller DEFINITION
     "! <p class="shorttext synchronized" lang="en">Check authorization</p>
     METHODS check_authorization
       IMPORTING
-        iv_location_id TYPE ygms_loc_id
+        iv_location_id TYPE ygms_de_loc_id
         iv_activity    TYPE activ_auth
       RETURNING
         VALUE(rv_authorized) TYPE abap_bool.
 
   PRIVATE SECTION.
-    DATA: mv_location_id TYPE ygms_loc_id,
+    DATA: mv_location_id TYPE ygms_de_loc_id,
           mv_date_from   TYPE datum,
           mv_date_to     TYPE datum,
           mt_messages    TYPE bapiret2_t,
@@ -75,7 +75,7 @@ CLASS ygms_cl_cst_controller DEFINITION
     "! <p class="shorttext synchronized" lang="en">Generate GAIL ID</p>
     METHODS generate_gail_id
       RETURNING
-        VALUE(rv_gail_id) TYPE ygms_gail_id.
+        VALUE(rv_gail_id) TYPE ygms_de_gail_id.
 
 ENDCLASS.
 

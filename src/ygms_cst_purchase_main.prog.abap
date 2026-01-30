@@ -8,7 +8,7 @@ REPORT ygms_cst_purchase_main.
 * Selection Screen
 *----------------------------------------------------------------------*
 SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE TEXT-001.
-  PARAMETERS:     p_loc    TYPE ygms_loc_id OBLIGATORY.
+  PARAMETERS:     p_loc    TYPE ygms_de_loc_id OBLIGATORY.
   SELECT-OPTIONS: s_date   FOR sy-datum OBLIGATORY.
   SELECT-OPTIONS: s_exst   FOR sy-langu NO INTERVALS.
 SELECTION-SCREEN END OF BLOCK b1.
@@ -26,7 +26,7 @@ SELECTION-SCREEN END OF BLOCK b2.
 DATA: go_controller  TYPE REF TO ygms_cl_cst_controller,
       gt_allocation  TYPE ygms_tt_allocation,
       gt_messages    TYPE bapiret2_t,
-      gv_gail_id     TYPE ygms_gail_id.
+      gv_gail_id     TYPE ygms_de_gail_id.
 
 *----------------------------------------------------------------------*
 * Initialization

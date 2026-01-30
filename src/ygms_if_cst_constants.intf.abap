@@ -4,8 +4,8 @@ INTERFACE ygms_if_cst_constants
   "! <p class="shorttext synchronized" lang="en">Tax Types</p>
   CONSTANTS:
     BEGIN OF gc_tax_type,
-      cst TYPE ygms_tax_type VALUE 'CST',
-      gst TYPE ygms_tax_type VALUE 'GST',
+      cst TYPE char3 VALUE 'CST',
+      gst TYPE char3 VALUE 'GST',
     END OF gc_tax_type.
 
   "! <p class="shorttext synchronized" lang="en">Operations</p>
@@ -41,8 +41,8 @@ INTERFACE ygms_if_cst_constants
       mat_map   TYPE tabname VALUE 'YGMS_CST_MAT_MAP',
       b2b_1     TYPE tabname VALUE 'YGMS_CST_B2B_1',
       purchase  TYPE tabname VALUE 'YGMS_CST_PUR',
-      fnt_data  TYPE tabname VALUE 'YGMS_CST_FNT_DATA',
-      audit_log TYPE tabname VALUE 'YGMS_CST_AUDIT_LOG',
+      fnt_data  TYPE tabname VALUE 'YGMS_FNT_DATA',
+      audit_log TYPE tabname VALUE 'YGMS_AUDIT_LOG',
     END OF gc_tables.
 
   "! <p class="shorttext synchronized" lang="en">Authorization Objects</p>
@@ -61,6 +61,6 @@ INTERFACE ygms_if_cst_constants
 
   "! <p class="shorttext synchronized" lang="en">Conversion Constants</p>
   CONSTANTS:
-    gc_mmbtu_to_scm_factor TYPE p DECIMALS 6 VALUE '26.853'.
+    gc_mmbtu_to_scm_factor TYPE decfloat16 VALUE '26.853'.
 
 ENDINTERFACE.

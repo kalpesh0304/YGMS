@@ -45,8 +45,8 @@ CLASS ygms_cl_cst_validator IMPLEMENTATION.
 
 
   METHOD validate_totals.
-    DATA: lv_b2b_total_mbg   TYPE ygms_qty_mbg,
-          lv_alloc_total_mbg TYPE ygms_qty_mbg.
+    DATA: lv_b2b_total_mbg   TYPE ygms_de_qty_mbg,
+          lv_alloc_total_mbg TYPE ygms_de_qty_mbg.
 
     " Sum B2B quantities
     LOOP AT it_b2b_data INTO DATA(ls_b2b).

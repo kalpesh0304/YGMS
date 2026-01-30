@@ -7,7 +7,7 @@ INTERFACE ygms_if_cst_processor
   "! @parameter iv_date_to | End date
   METHODS initialize
     IMPORTING
-      iv_location_id TYPE ygms_loc_id
+      iv_location_id TYPE ygms_de_loc_id
       iv_date_from   TYPE datum
       iv_date_to     TYPE datum.
 
