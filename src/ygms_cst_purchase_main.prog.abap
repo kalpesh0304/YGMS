@@ -262,19 +262,16 @@ FORM convert_excel_to_allocation.
   LOOP AT gt_excel_data INTO DATA(ls_excel).
     CLEAR ls_allocation.
 
-    ls_allocation-gas_day       = ls_excel-gas_day.
     ls_allocation-location_id   = ls_excel-location_id.
     ls_allocation-material      = ls_excel-material.
     ls_allocation-state         = ls_excel-state.
     ls_allocation-state_code    = ls_excel-state_code.
-    ls_allocation-supply_qty_mbg = ls_excel-qty_mbg.
-    ls_allocation-supply_qty_scm = ls_excel-qty_scm.
-    ls_allocation-alloc_qty_mbg = ls_excel-qty_mbg.
-    ls_allocation-alloc_qty_scm = ls_excel-qty_scm.
-    ls_allocation-alloc_pct     = 100.
-    ls_allocation-gcv           = ls_excel-gcv.
-    ls_allocation-ncv           = ls_excel-ncv.
-    ls_allocation-tax_type      = ls_excel-tax_type.
+    ls_allocation-total_mbg     = ls_excel-qty_mbg.
+    ls_allocation-total_scm     = ls_excel-qty_scm.
+    ls_allocation-avg_gcv       = ls_excel-gcv.
+    ls_allocation-avg_ncv       = ls_excel-ncv.
+    ls_allocation-fnt_start     = s_date-low.
+    ls_allocation-fnt_end       = s_date-high.
 
     APPEND ls_allocation TO gt_allocation.
   ENDLOOP.
