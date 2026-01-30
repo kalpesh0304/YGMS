@@ -358,13 +358,24 @@ ENDFORM.
 FORM save_data.
   DATA: ls_purchase TYPE ygms_cst_pur,
         lv_gail_id  TYPE ygms_de_gail_id,
-        lv_guid     TYPE guid_16.
+        lv_guid     TYPE string,
+        lv_random   TYPE i,
+        lv_guid_raw TYPE guid_16.
 
   " Generate GAIL ID
   TRY.
-      lv_guid = cl_system_uuid=>create_uuid_c16_static( ).
-    CATCH cx_uuid_error.
-      lv_guid = |{ sy-datum }{ sy-uzeit }{ sy-uname+0(4) }|.
+      CALL METHOD cl_system_uuid=>create_uuid_c16_static
+        RECEIVING
+          uuid = lv_guid_raw.
+      lv_guid = lv_guid_raw.
+    CATCH cx_sy_dyn_call_illegal_method cx_uuid_error.
+      " Fallback: Generate ID from timestamp and random number
+      CALL FUNCTION 'GENERAL_GET_RANDOM_INT'
+        EXPORTING
+          range  = 9999
+        IMPORTING
+          random = lv_random.
+      lv_guid = |{ sy-uname }{ lv_random }|.
   ENDTRY.
   lv_gail_id = |GAIL-{ sy-datum }-{ sy-uzeit }-{ lv_guid+0(4) }|.
 
