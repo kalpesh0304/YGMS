@@ -27,7 +27,7 @@ CLASS ygms_cl_cst_data_handler DEFINITION
     "! <p class="shorttext synchronized" lang="en">Get location mapping</p>
     METHODS get_location_mapping
       IMPORTING
-        iv_location_id     TYPE ygms_loc_id
+        iv_location_id     TYPE ygms_de_loc_id
       RETURNING
         VALUE(rs_location) TYPE ygms_cst_loc_map.
 
