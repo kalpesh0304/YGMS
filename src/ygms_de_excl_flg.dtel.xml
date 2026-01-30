@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_DTEL" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <DD04V>
+    <ROLLNAME>YGMS_DE_EXCL_FLG</ROLLNAME>
+    <DDLANGUAGE>E</DDLANGUAGE>
+    <DOMNAME>YGMS_FLAG</DOMNAME>
+    <HEADLEN>14</HEADLEN>
+    <SCRLEN1>10</SCRLEN1>
+    <SCRLEN2>14</SCRLEN2>
+    <SCRLEN3>20</SCRLEN3>
+    <DDTEXT>Exclusion Flag</DDTEXT>
+    <REPTEXT>Exclusion Flag</REPTEXT>
+    <SCRTEXT_S>Excl Flag</SCRTEXT_S>
+    <SCRTEXT_M>Exclusion Flag</SCRTEXT_M>
+    <SCRTEXT_L>State Exclusion Flag</SCRTEXT_L>
+   </DD04V>
+  </asx:values>
+ </asx:abap>
+</abapGit>

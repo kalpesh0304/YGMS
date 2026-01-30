@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_DTEL" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <DD04V>
+    <ROLLNAME>YGMS_DE_ONGC_MAT</ROLLNAME>
+    <DDLANGUAGE>E</DDLANGUAGE>
+    <DOMNAME>YGMS_ONGC_MAT</DOMNAME>
+    <HEADLEN>18</HEADLEN>
+    <SCRLEN1>10</SCRLEN1>
+    <SCRLEN2>18</SCRLEN2>
+    <SCRLEN3>20</SCRLEN3>
+    <DDTEXT>ONGC Material Code</DDTEXT>
+    <REPTEXT>ONGC Material Code</REPTEXT>
+    <SCRTEXT_S>ONGC Mat</SCRTEXT_S>
+    <SCRTEXT_M>ONGC Material Code</SCRTEXT_M>
+    <SCRTEXT_L>ONGC Material Code</SCRTEXT_L>
+   </DD04V>
+  </asx:values>
+ </asx:abap>
+</abapGit>

@@ -126,6 +126,36 @@
      <SPRSL>E</SPRSL>
      <ARBGB>YGMS_MSG</ARBGB>
      <MSGNR>020</MSGNR>
+     <TEXT>File not found: &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>YGMS_MSG</ARBGB>
+     <MSGNR>021</MSGNR>
+     <TEXT>File upload failed: &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>YGMS_MSG</ARBGB>
+     <MSGNR>022</MSGNR>
+     <TEXT>File download failed: &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>YGMS_MSG</ARBGB>
+     <MSGNR>023</MSGNR>
+     <TEXT>ALV display error: &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>YGMS_MSG</ARBGB>
+     <MSGNR>024</MSGNR>
+     <TEXT>No data available: &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>YGMS_MSG</ARBGB>
+     <MSGNR>025</MSGNR>
      <TEXT>Excel file processed: &amp;1 rows read</TEXT>
     </T100>
    </T100>

@@ -61,6 +61,61 @@ CLASS ygms_cx_cst_error DEFINITION
         attr4 TYPE scx_attrname VALUE '',
       END OF material_not_found.
 
+    "! File not found error
+    CONSTANTS:
+      BEGIN OF file_not_found,
+        msgid TYPE symsgid VALUE 'YGMS_MSG',
+        msgno TYPE symsgno VALUE '020',
+        attr1 TYPE scx_attrname VALUE 'MV_PARAM1',
+        attr2 TYPE scx_attrname VALUE '',
+        attr3 TYPE scx_attrname VALUE '',
+        attr4 TYPE scx_attrname VALUE '',
+      END OF file_not_found.
+
+    "! Upload failed error
+    CONSTANTS:
+      BEGIN OF upload_failed,
+        msgid TYPE symsgid VALUE 'YGMS_MSG',
+        msgno TYPE symsgno VALUE '021',
+        attr1 TYPE scx_attrname VALUE 'MV_PARAM1',
+        attr2 TYPE scx_attrname VALUE '',
+        attr3 TYPE scx_attrname VALUE '',
+        attr4 TYPE scx_attrname VALUE '',
+      END OF upload_failed.
+
+    "! Download failed error
+    CONSTANTS:
+      BEGIN OF download_failed,
+        msgid TYPE symsgid VALUE 'YGMS_MSG',
+        msgno TYPE symsgno VALUE '022',
+        attr1 TYPE scx_attrname VALUE 'MV_PARAM1',
+        attr2 TYPE scx_attrname VALUE '',
+        attr3 TYPE scx_attrname VALUE '',
+        attr4 TYPE scx_attrname VALUE '',
+      END OF download_failed.
+
+    "! ALV display error
+    CONSTANTS:
+      BEGIN OF alv_error,
+        msgid TYPE symsgid VALUE 'YGMS_MSG',
+        msgno TYPE symsgno VALUE '023',
+        attr1 TYPE scx_attrname VALUE 'MV_PARAM1',
+        attr2 TYPE scx_attrname VALUE '',
+        attr3 TYPE scx_attrname VALUE '',
+        attr4 TYPE scx_attrname VALUE '',
+      END OF alv_error.
+
+    "! No data error
+    CONSTANTS:
+      BEGIN OF no_data,
+        msgid TYPE symsgid VALUE 'YGMS_MSG',
+        msgno TYPE symsgno VALUE '024',
+        attr1 TYPE scx_attrname VALUE 'MV_PARAM1',
+        attr2 TYPE scx_attrname VALUE '',
+        attr3 TYPE scx_attrname VALUE '',
+        attr4 TYPE scx_attrname VALUE '',
+      END OF no_data.
+
     "! Message parameters
     DATA: mv_param1 TYPE string,
           mv_param2 TYPE string.
