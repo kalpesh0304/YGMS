@@ -52,6 +52,13 @@ CLASS ygms_cl_cst_controller DEFINITION
       RETURNING
         VALUE(rv_authorized) TYPE abap_bool.
 
+    "! <p class="shorttext synchronized" lang="en">Validate allocation data</p>
+    METHODS validate_allocation_data
+      IMPORTING
+        it_allocation TYPE ygms_tt_allocation
+      RETURNING
+        VALUE(rv_valid) TYPE abap_bool.
+
   PRIVATE SECTION.
     DATA: mv_location_id TYPE ygms_de_loc_id,
           mv_date_from   TYPE datum,
@@ -349,6 +356,26 @@ CLASS ygms_cl_cst_controller IMPLEMENTATION.
       rv_gail_id = |{ ygms_if_cst_constants=>gc_gail_id_prefix }-| &&
                    |{ sy-datum }-{ sy-uzeit }-{ lv_guid+0(4) }|.
     ENDIF.
+  ENDMETHOD.
+
+
+  METHOD validate_allocation_data.
+    rv_valid = abap_true.
+
+    LOOP AT it_allocation INTO DATA(ls_alloc).
+      " Validate required fields
+      IF ls_alloc-location_id IS INITIAL OR
+         ls_alloc-state IS INITIAL.
+        rv_valid = abap_false.
+        EXIT.
+      ENDIF.
+
+      " Validate quantities are not negative
+      IF ls_alloc-total_mbg < 0 OR ls_alloc-total_scm < 0.
+        rv_valid = abap_false.
+        EXIT.
+      ENDIF.
+    ENDLOOP.
   ENDMETHOD.
 
 ENDCLASS.

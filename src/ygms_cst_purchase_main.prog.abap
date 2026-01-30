@@ -306,42 +306,42 @@ FORM display_alv.
       TRY.
           lo_functions->add_function(
             name     = 'ALLOCATE'
-            icon     = CONV salv_de_function_icon( icon_calculation )
+            icon     = CONV #( icon_calculation )
             text     = 'Allocate'
             tooltip  = 'Execute state-wise allocation'
             position = if_salv_c_function_position=>right_of_salv_functions
           ).
           lo_functions->add_function(
             name     = 'VALIDATE'
-            icon     = CONV salv_de_function_icon( icon_check )
+            icon     = CONV #( icon_check )
             text     = 'Validate'
             tooltip  = 'Validate allocation data'
             position = if_salv_c_function_position=>right_of_salv_functions
           ).
           lo_functions->add_function(
             name     = 'EDIT'
-            icon     = CONV salv_de_function_icon( icon_change )
+            icon     = CONV #( icon_change )
             text     = 'Edit'
             tooltip  = 'Enable edit mode'
             position = if_salv_c_function_position=>right_of_salv_functions
           ).
           lo_functions->add_function(
             name     = 'SAVE'
-            icon     = CONV salv_de_function_icon( icon_system_save )
+            icon     = CONV #( icon_system_save )
             text     = 'Save'
             tooltip  = 'Save allocation data'
             position = if_salv_c_function_position=>right_of_salv_functions
           ).
           lo_functions->add_function(
             name     = 'RESET'
-            icon     = CONV salv_de_function_icon( icon_refresh )
+            icon     = CONV #( icon_refresh )
             text     = 'Reset'
             tooltip  = 'Reset allocation data'
             position = if_salv_c_function_position=>right_of_salv_functions
           ).
           lo_functions->add_function(
             name     = 'SEND'
-            icon     = CONV salv_de_function_icon( icon_mail )
+            icon     = CONV #( icon_mail )
             text     = 'Send'
             tooltip  = 'Send data to ONGC'
             position = if_salv_c_function_position=>right_of_salv_functions
@@ -620,8 +620,8 @@ FORM action_validate.
   DATA: lv_valid TYPE abap_bool.
 
   TRY.
-      " Validate allocation data using interface method
-      lv_valid = go_controller->ygms_if_cst_processor~validate( gt_allocation ).
+      " Validate allocation data
+      lv_valid = go_controller->validate_allocation_data( gt_allocation ).
 
       IF lv_valid = abap_true.
         MESSAGE 'Validation successful - No errors found' TYPE 'S'.
