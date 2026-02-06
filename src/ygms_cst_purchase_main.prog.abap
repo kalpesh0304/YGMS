@@ -50,36 +50,6 @@ types: begin of ty_final,
          matnr15    type p decimals 3,
        end of ty_final.
 
-* Merged structure - row-wise combining it_final data with fieldcat column names
-TYPES: BEGIN OF ty_merged_row,
-         " Row identifier
-         row_index     TYPE sy-tabix,
-         " Data fields from it_final
-         vstel         TYPE vbap-vstel,
-         abtnr         TYPE vbkd-abtnr,
-         empst         TYPE empst,
-         regio         TYPE t001w-regio,
-         regio_desc    TYPE bezei20,
-         address       TYPE char60,
-         matnr1        TYPE p DECIMALS 3,
-         matnr2        TYPE p DECIMALS 3,
-         matnr3        TYPE p DECIMALS 3,
-         matnr4        TYPE p DECIMALS 3,
-         matnr5        TYPE p DECIMALS 3,
-         matnr6        TYPE p DECIMALS 3,
-         matnr7        TYPE p DECIMALS 3,
-         matnr8        TYPE p DECIMALS 3,
-         matnr9        TYPE p DECIMALS 3,
-         matnr10       TYPE p DECIMALS 3,
-         matnr11       TYPE p DECIMALS 3,
-         matnr12       TYPE p DECIMALS 3,
-         matnr13       TYPE p DECIMALS 3,
-         matnr14       TYPE p DECIMALS 3,
-         matnr15       TYPE p DECIMALS 3,
-         " Column headers from fieldcat (stored as concatenated string)
-         col_headers   TYPE string,
-       END OF ty_merged_row.
-
 *----------------------------------------------------------------------*
 * Selection Screen
 *----------------------------------------------------------------------*
@@ -101,8 +71,7 @@ DATA: gt_gas_receipt TYPE TABLE OF ty_gas_receipt,
 
 type-pools : slis.
 data: gt_fieldcat   type slis_t_fieldcat_alv with header line,
-      it_final      type table of ty_final,
-      gt_merged     type table of ty_merged_row.  " Merged row-wise table
+      it_final      type table of ty_final.
 
 *----------------------------------------------------------------------*
 * Initialization
@@ -144,9 +113,6 @@ START-OF-SELECTION.
 
 * *Step 5 Fetch data from t code - YRXR098
    PERFORM fetch_data_YRXR098.
-
-  " Step 6: Merge fieldcat and it_final row-wise
-  PERFORM merge_fieldcat_data_rowwise.
 
 *&---------------------------------------------------------------------*
 *& Form FETCH_LOCATION_CTP_MAPPINGS
@@ -311,72 +277,4 @@ SUBMIT YRVR098_STATES_QTY_REPORT Using selection-SCREEN '1000'
     import gt_fieldcat from  MEMORY id 'FC'.
     import it_final from  MEMORY id 'FI'.
 
-ENDFORM.
-
-*&---------------------------------------------------------------------*
-*& Form MERGE_FIELDCAT_DATA_ROWWISE
-*& 3.1.6 - Merge gt_fieldcat and it_final into gt_merged row-wise
-*&---------------------------------------------------------------------*
-FORM merge_fieldcat_data_rowwise.
-  DATA: ls_merged     TYPE ty_merged_row,
-        lv_row_index  TYPE sy-tabix,
-        lv_col_header TYPE string,
-        ls_fieldcat   TYPE slis_fieldcat_alv.
-
-  FIELD-SYMBOLS: <fs_value> TYPE any.
-
-  " Clear merged table
-  CLEAR gt_merged.
-
-  " Build column headers string from fieldcat
-  CLEAR lv_col_header.
-  LOOP AT gt_fieldcat INTO ls_fieldcat.
-    IF lv_col_header IS INITIAL.
-      lv_col_header = ls_fieldcat-fieldname.
-    ELSE.
-      CONCATENATE lv_col_header '|' ls_fieldcat-fieldname INTO lv_col_header.
-    ENDIF.
-  ENDLOOP.
-
-  " Loop through it_final and create merged rows
-  lv_row_index = 0.
-  LOOP AT it_final INTO DATA(ls_final).
-    lv_row_index = lv_row_index + 1.
-    CLEAR ls_merged.
-
-    " Set row index
-    ls_merged-row_index = lv_row_index.
-
-    " Copy all data fields from it_final
-    ls_merged-vstel      = ls_final-vstel.
-    ls_merged-abtnr      = ls_final-abtnr.
-    ls_merged-empst      = ls_final-empst.
-    ls_merged-regio      = ls_final-regio.
-    ls_merged-regio_desc = ls_final-regio_desc.
-    ls_merged-address    = ls_final-address.
-    ls_merged-matnr1     = ls_final-matnr1.
-    ls_merged-matnr2     = ls_final-matnr2.
-    ls_merged-matnr3     = ls_final-matnr3.
-    ls_merged-matnr4     = ls_final-matnr4.
-    ls_merged-matnr5     = ls_final-matnr5.
-    ls_merged-matnr6     = ls_final-matnr6.
-    ls_merged-matnr7     = ls_final-matnr7.
-    ls_merged-matnr8     = ls_final-matnr8.
-    ls_merged-matnr9     = ls_final-matnr9.
-    ls_merged-matnr10    = ls_final-matnr10.
-    ls_merged-matnr11    = ls_final-matnr11.
-    ls_merged-matnr12    = ls_final-matnr12.
-    ls_merged-matnr13    = ls_final-matnr13.
-    ls_merged-matnr14    = ls_final-matnr14.
-    ls_merged-matnr15    = ls_final-matnr15.
-
-    " Store column headers from fieldcat
-    ls_merged-col_headers = lv_col_header.
-
-    " Append merged row
-    APPEND ls_merged TO gt_merged.
-  ENDLOOP.
-
-  DATA(lv_count) = lines( gt_merged ).
-  MESSAGE s000(ygms_msg) WITH lv_count 'merged rows created'.
 ENDFORM.
