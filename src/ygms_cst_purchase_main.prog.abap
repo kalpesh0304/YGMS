@@ -50,6 +50,19 @@ types: begin of ty_final,
          matnr15    type p decimals 3,
        end of ty_final.
 
+
+types: begin of ty_final1,
+         vstel      type vbap-vstel,
+         abtnr      type vbkd-abtnr,
+         empst      type empst,
+         regio      type t001w-regio,
+         regio_desc type bezei20,
+         address    type char60,
+         matnr      type matnr,
+         matnr1     type p decimals 3, "GMS_NG-Z
+  end of ty_final1.
+
+
 *----------------------------------------------------------------------*
 * Selection Screen
 *----------------------------------------------------------------------*
@@ -71,7 +84,9 @@ DATA: gt_gas_receipt TYPE TABLE OF ty_gas_receipt,
 
 type-pools : slis.
 data: gt_fieldcat   type slis_t_fieldcat_alv with header line,
-      it_final      type table of ty_final.
+       it_final            type table of ty_final,
+       it_final_main type TABLE of ty_final1,
+       wa_final_main type ty_final1.
 
 *----------------------------------------------------------------------*
 * Initialization
@@ -270,11 +285,27 @@ ENDFORM.
 FORM fetch_data_yrxr098 .
 
 SUBMIT YRVR098_STATES_QTY_REPORT Using selection-SCREEN '1000'
-      with s_fdate in s_date
+      with s_fkdat in s_date
       with p_ex = 'X'
       and RETURN.
 
     import gt_fieldcat from  MEMORY id 'FC'.
     import it_final from  MEMORY id 'FI'.
+
+loop at it_final into DATA(wa_final).
+MOVE-CORRESPONDING wa_final to wa_final_main.
+loop at gt_fieldcat into data(wa_fieldcat) where fieldname cs 'MATNR'.
+  replace all OCCURRENCES OF 'Qty in MMBTU of' in wa_fieldcat-seltext_l with space.
+  CONDENSE wa_fieldcat-seltext_l.
+  wa_final_main-matnr = wa_fieldcat-seltext_l.
+  ASSIGN COMPONENT wa_fieldcat-fieldname of STRUCTURE wa_final to FIELD-SYMBOL(<fs_value>).
+  if sy-subrc = 0.
+    wa_final_main-matnr1 = <fs_value>.
+  ENDIF.
+  append wa_final_main to it_final_main.
+endloop.
+*append wa_final_main to it_final_main.
+ENDLOOP.
+
 
 ENDFORM.
