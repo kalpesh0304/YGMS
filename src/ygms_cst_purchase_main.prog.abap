@@ -50,43 +50,6 @@ types: begin of ty_final,
          matnr15    type p decimals 3,
        end of ty_final.
 
-* Merged structure combining gas receipt and final data
-TYPES: BEGIN OF ty_merged_data,
-         " Fields from ty_gas_receipt
-         gas_day       TYPE datum,
-         ctp_id        TYPE ygms_de_ongc_ctp,
-         location_id   TYPE ygms_de_loc_id,
-         ongc_material TYPE ygms_de_ongc_mat,
-         material      TYPE ygms_de_gail_mat,
-         qty_scm       TYPE ygms_de_qty_scm,
-         gcv           TYPE ygms_de_gcv,
-         ncv           TYPE ygms_de_ncv,
-         qty_mbg       TYPE ygms_de_qty_mbg,
-         ongc_id       TYPE c LENGTH 9,
-         " Fields from ty_final
-         vstel         TYPE vbap-vstel,
-         abtnr         TYPE vbkd-abtnr,
-         empst         TYPE empst,
-         regio         TYPE t001w-regio,
-         regio_desc    TYPE bezei20,
-         address       TYPE char60,
-         matnr1        TYPE p DECIMALS 3,
-         matnr2        TYPE p DECIMALS 3,
-         matnr3        TYPE p DECIMALS 3,
-         matnr4        TYPE p DECIMALS 3,
-         matnr5        TYPE p DECIMALS 3,
-         matnr6        TYPE p DECIMALS 3,
-         matnr7        TYPE p DECIMALS 3,
-         matnr8        TYPE p DECIMALS 3,
-         matnr9        TYPE p DECIMALS 3,
-         matnr10       TYPE p DECIMALS 3,
-         matnr11       TYPE p DECIMALS 3,
-         matnr12       TYPE p DECIMALS 3,
-         matnr13       TYPE p DECIMALS 3,
-         matnr14       TYPE p DECIMALS 3,
-         matnr15       TYPE p DECIMALS 3,
-       END OF ty_merged_data.
-
 *----------------------------------------------------------------------*
 * Selection Screen
 *----------------------------------------------------------------------*
@@ -108,8 +71,7 @@ DATA: gt_gas_receipt TYPE TABLE OF ty_gas_receipt,
 
 type-pools : slis.
 data: gt_fieldcat   type slis_t_fieldcat_alv with header line,
-      it_final      type table of ty_final,
-      gt_merged     type table of ty_merged_data.  " Merged data table
+      it_final      type table of ty_final.
 
 *----------------------------------------------------------------------*
 * Initialization
@@ -151,9 +113,6 @@ START-OF-SELECTION.
 
 * *Step 5 Fetch data from t code - YRXR098
    PERFORM fetch_data_YRXR098.
-
-  " Step 6: Merge gas receipt and final data row-wise
-  PERFORM merge_data_rowwise.
 
 *&---------------------------------------------------------------------*
 *& Form FETCH_LOCATION_CTP_MAPPINGS
@@ -318,76 +277,4 @@ SUBMIT YRVR098_STATES_QTY_REPORT Using selection-SCREEN '1000'
     import gt_fieldcat from  MEMORY id 'FC'.
     import it_final from  MEMORY id 'FI'.
 
-ENDFORM.
-
-*&---------------------------------------------------------------------*
-*& Form MERGE_DATA_ROWWISE
-*& 3.1.6 - Merge gt_gas_receipt and it_final into gt_merged row-wise
-*&---------------------------------------------------------------------*
-FORM merge_data_rowwise.
-  DATA: ls_merged    TYPE ty_merged_data,
-        lv_index     TYPE sy-tabix,
-        lv_max_lines TYPE i.
-
-  " Clear merged table
-  CLEAR gt_merged.
-
-  " Determine maximum number of rows
-  lv_max_lines = lines( gt_gas_receipt ).
-  IF lines( it_final ) > lv_max_lines.
-    lv_max_lines = lines( it_final ).
-  ENDIF.
-
-  " Merge data row by row
-  DO lv_max_lines TIMES.
-    lv_index = sy-index.
-    CLEAR ls_merged.
-
-    " Read gas receipt data at current index
-    READ TABLE gt_gas_receipt INTO DATA(ls_receipt) INDEX lv_index.
-    IF sy-subrc = 0.
-      ls_merged-gas_day       = ls_receipt-gas_day.
-      ls_merged-ctp_id        = ls_receipt-ctp_id.
-      ls_merged-location_id   = ls_receipt-location_id.
-      ls_merged-ongc_material = ls_receipt-ongc_material.
-      ls_merged-material      = ls_receipt-material.
-      ls_merged-qty_scm       = ls_receipt-qty_scm.
-      ls_merged-gcv           = ls_receipt-gcv.
-      ls_merged-ncv           = ls_receipt-ncv.
-      ls_merged-qty_mbg       = ls_receipt-qty_mbg.
-      ls_merged-ongc_id       = ls_receipt-ongc_id.
-    ENDIF.
-
-    " Read final data at current index
-    READ TABLE it_final INTO DATA(ls_final) INDEX lv_index.
-    IF sy-subrc = 0.
-      ls_merged-vstel      = ls_final-vstel.
-      ls_merged-abtnr      = ls_final-abtnr.
-      ls_merged-empst      = ls_final-empst.
-      ls_merged-regio      = ls_final-regio.
-      ls_merged-regio_desc = ls_final-regio_desc.
-      ls_merged-address    = ls_final-address.
-      ls_merged-matnr1     = ls_final-matnr1.
-      ls_merged-matnr2     = ls_final-matnr2.
-      ls_merged-matnr3     = ls_final-matnr3.
-      ls_merged-matnr4     = ls_final-matnr4.
-      ls_merged-matnr5     = ls_final-matnr5.
-      ls_merged-matnr6     = ls_final-matnr6.
-      ls_merged-matnr7     = ls_final-matnr7.
-      ls_merged-matnr8     = ls_final-matnr8.
-      ls_merged-matnr9     = ls_final-matnr9.
-      ls_merged-matnr10    = ls_final-matnr10.
-      ls_merged-matnr11    = ls_final-matnr11.
-      ls_merged-matnr12    = ls_final-matnr12.
-      ls_merged-matnr13    = ls_final-matnr13.
-      ls_merged-matnr14    = ls_final-matnr14.
-      ls_merged-matnr15    = ls_final-matnr15.
-    ENDIF.
-
-    " Append merged row
-    APPEND ls_merged TO gt_merged.
-  ENDDO.
-
-  DATA(lv_count) = lines( gt_merged ).
-  MESSAGE s000(ygms_msg) WITH lv_count 'merged records created'.
 ENDFORM.
