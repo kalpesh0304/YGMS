@@ -1061,6 +1061,7 @@ ENDFORM.
 *& Form SAVE_DATA_TO_DB
 *&---------------------------------------------------------------------*
 FORM save_data_to_db.
+  " Type for GAIL ID mapping
   TYPES: BEGIN OF ty_gail_id_map,
            location_id TYPE ygms_de_loc_id,
            material    TYPE ygms_de_gail_mat,
@@ -1068,30 +1069,56 @@ FORM save_data_to_db.
            gail_id     TYPE c LENGTH 14,
          END OF ty_gail_id_map.
 
+  " Type for error log
+  TYPES: BEGIN OF ty_error_log,
+           date_from   TYPE datum,
+           date_to     TYPE datum,
+           location_id TYPE ygms_de_loc_id,
+           material    TYPE ygms_de_gail_mat,
+           state_code  TYPE regio,
+           gail_ids    TYPE string,
+         END OF ty_error_log.
+
   DATA: lt_cst_pur      TYPE TABLE OF yrga_cst_pur,
         ls_cst_pur      TYPE yrga_cst_pur,
+        lt_cst_fnt      TYPE TABLE OF yrga_cst_fnt_d,
+        ls_cst_fnt      TYPE yrga_cst_fnt_d,
         lv_timestamp    TYPE timestampl,
         lv_ts_char      TYPE c LENGTH 14,
         lv_date         TYPE datum,
         lv_day_index    TYPE i,
-        lv_day_field    TYPE string,
         lv_day_qty      TYPE p DECIMALS 3,
         lv_counter      TYPE i,
+        lv_fnt_counter  TYPE i,
         lt_gail_id_map  TYPE TABLE OF ty_gail_id_map,
         ls_gail_id_map  TYPE ty_gail_id_map,
         lv_gail_prefix  TYPE c LENGTH 8,
         lv_fortnight    TYPE c LENGTH 2,
         lv_seq_number   TYPE n LENGTH 6,
-        lv_return_code  TYPE inri-returncode.
+        lv_return_code  TYPE inri-returncode,
+        lt_error_log    TYPE TABLE OF ty_error_log,
+        ls_error_log    TYPE ty_error_log,
+        lv_error_found  TYPE abap_bool.
+
+  " Variables for weighted average calculation
+  DATA: lv_total_vol    TYPE p DECIMALS 3,
+        lv_sum_vol_gcv  TYPE p DECIMALS 6,
+        lv_sum_vol_ncv  TYPE p DECIMALS 6,
+        lv_avg_gcv      TYPE ygms_de_gcv,
+        lv_avg_ncv      TYPE ygms_de_ncv,
+        lv_total_mbg    TYPE p DECIMALS 3,
+        lv_total_scm    TYPE p DECIMALS 3.
+
+  " Variables for GAIL ID validation
+  DATA: lt_gail_ids     TYPE TABLE OF yrga_cst_pur-gail_id,
+        lv_gail_count   TYPE i,
+        lv_gail_id_str  TYPE string.
 
   " Get current timestamp
   GET TIME STAMP FIELD lv_timestamp.
   lv_ts_char = lv_timestamp.
 
   " Generate GAIL_ID prefix: GA + YYMM + F1/F2
-  " GA = fixed prefix
-  " YYMM = year (2 digits) + month (2 digits) from gv_date_from
-  " F1 = first fortnight (day 1-15), F2 = second fortnight (day 16-31)
   DATA(lv_day) = gv_date_from+6(2).
   IF lv_day <= 15.
     lv_fortnight = 'F1'.
@@ -1102,9 +1129,11 @@ FORM save_data_to_db.
   " Build prefix: GA + YY + MM + F1/F2 (e.g., GA2510F1)
   CONCATENATE 'GA' gv_date_from+2(2) gv_date_from+4(2) lv_fortnight INTO lv_gail_prefix.
 
+  " Initialize error flag
+  lv_error_found = abap_false.
+
   " First pass: Generate unique GAIL_IDs for each Location-Material-State combination
   LOOP AT gt_alv_display INTO gs_alv_display WHERE exclude IS INITIAL.
-    " Check if GAIL_ID already generated for this combination
     READ TABLE lt_gail_id_map INTO ls_gail_id_map
       WITH KEY location_id = gs_alv_display-location_id
                material    = gs_alv_display-material
@@ -1120,7 +1149,6 @@ FORM save_data_to_db.
           returncode  = lv_return_code.
 
       IF lv_return_code IS INITIAL OR lv_return_code = '1'.
-        " Build GAIL_ID: prefix (8 chars) + sequence number (6 digits) = 14 chars
         CLEAR ls_gail_id_map.
         ls_gail_id_map-location_id = gs_alv_display-location_id.
         ls_gail_id_map-material    = gs_alv_display-material.
@@ -1131,22 +1159,18 @@ FORM save_data_to_db.
     ENDIF.
   ENDLOOP.
 
-  " Second pass: Create records for each day with the assigned GAIL_ID
+  " Second pass: Create daily records for YRGA_CST_PUR
   LOOP AT gt_alv_display INTO gs_alv_display WHERE exclude IS INITIAL.
-    " Get the GAIL_ID for this Location-Material-State combination
     READ TABLE lt_gail_id_map INTO ls_gail_id_map
       WITH KEY location_id = gs_alv_display-location_id
                material    = gs_alv_display-material
                state_code  = gs_alv_display-state_code.
 
-    " Initialize date to start date
     lv_date = gv_date_from.
 
-    " Loop through 15 days
     DO 15 TIMES.
       lv_day_index = sy-index.
 
-      " Get the day quantity from the corresponding field
       CASE lv_day_index.
         WHEN 1.  lv_day_qty = gs_alv_display-day01.
         WHEN 2.  lv_day_qty = gs_alv_display-day02.
@@ -1165,11 +1189,9 @@ FORM save_data_to_db.
         WHEN 15. lv_day_qty = gs_alv_display-day15.
       ENDCASE.
 
-      " Only save if there is quantity for this day
       IF lv_day_qty > 0.
         CLEAR ls_cst_pur.
 
-        " Populate the record
         ls_cst_pur-gas_day      = lv_date.
         ls_cst_pur-location     = gs_alv_display-location_id.
         ls_cst_pur-material     = gs_alv_display-material.
@@ -1186,7 +1208,6 @@ FORM save_data_to_db.
           ls_cst_pur-ongc_mater  = ls_receipt-ongc_material.
           ls_cst_pur-ongc_id     = ls_receipt-ongc_id.
         ELSE.
-          " Try to get from any record with same location and material
           READ TABLE gt_gas_receipt INTO ls_receipt
             WITH KEY location_id = gs_alv_display-location_id
                      material    = gs_alv_display-material.
@@ -1224,35 +1245,212 @@ FORM save_data_to_db.
           ls_cst_pur-qty_in_scm = c_tgqty.
         ENDIF.
 
-        " Assign GAIL_ID from the mapping (same for all days of same Location-Material-State)
-        ls_cst_pur-gail_id = ls_gail_id_map-gail_id.
-
+        ls_cst_pur-gail_id      = ls_gail_id_map-gail_id.
         ls_cst_pur-exclude      = gs_alv_display-exclude.
         ls_cst_pur-created_by   = sy-uname.
         ls_cst_pur-created_date = sy-datum.
         ls_cst_pur-created_time = sy-uzeit.
 
-        " Append to internal table
         APPEND ls_cst_pur TO lt_cst_pur.
       ENDIF.
 
-      " Move to next day
       lv_date = lv_date + 1.
     ENDDO.
   ENDLOOP.
 
-  " Save records to database table
+  " Third pass: Create fortnightly aggregated records for YRGA_CST_FNT_D
+  " Calculate weighted average GCV/NCV: Σ(Volume × GCV/NCV) / Total Volume
+  LOOP AT lt_gail_id_map INTO ls_gail_id_map.
+    CLEAR: lv_total_vol, lv_sum_vol_gcv, lv_sum_vol_ncv, lv_total_mbg, lv_total_scm.
+    CLEAR ls_cst_fnt.
+
+    " Sum quantities and calculate weighted averages for this Location-Material-State
+    LOOP AT lt_cst_pur INTO ls_cst_pur
+      WHERE location     = ls_gail_id_map-location_id
+        AND material     = ls_gail_id_map-material
+        AND state_code   = ls_gail_id_map-state_code.
+
+      " Accumulate totals
+      lv_total_mbg = lv_total_mbg + ls_cst_pur-qty_in_mbg.
+      lv_total_scm = lv_total_scm + ls_cst_pur-qty_in_scm.
+
+      " For weighted average: Σ(Volume × GCV) and Σ(Volume × NCV)
+      lv_sum_vol_gcv = lv_sum_vol_gcv + ( ls_cst_pur-qty_in_scm * ls_cst_pur-gcv ).
+      lv_sum_vol_ncv = lv_sum_vol_ncv + ( ls_cst_pur-qty_in_scm * ls_cst_pur-ncv ).
+      lv_total_vol   = lv_total_vol + ls_cst_pur-qty_in_scm.
+
+      " Get CTP and ONGC material (from first record)
+      IF ls_cst_fnt-ctp IS INITIAL.
+        ls_cst_fnt-ctp        = ls_cst_pur-ctp.
+        ls_cst_fnt-ongc_mater = ls_cst_pur-ongc_mater.
+        ls_cst_fnt-state      = ls_cst_pur-state.
+      ENDIF.
+    ENDLOOP.
+
+    " Calculate weighted average GCV/NCV
+    IF lv_total_vol > 0.
+      lv_avg_gcv = lv_sum_vol_gcv / lv_total_vol.
+      lv_avg_ncv = lv_sum_vol_ncv / lv_total_vol.
+    ENDIF.
+
+    " Populate fortnightly record
+    ls_cst_fnt-date_from    = gv_date_from.
+    ls_cst_fnt-date_to      = gv_date_to.
+    ls_cst_fnt-location     = ls_gail_id_map-location_id.
+    ls_cst_fnt-material     = ls_gail_id_map-material.
+    ls_cst_fnt-state_code   = ls_gail_id_map-state_code.
+    ls_cst_fnt-time_stamp   = lv_ts_char.
+    ls_cst_fnt-qty_in_mbg   = lv_total_mbg.
+    ls_cst_fnt-gcv          = lv_avg_gcv.
+    ls_cst_fnt-ncv          = lv_avg_ncv.
+    ls_cst_fnt-qty_in_scm   = lv_total_scm.
+    ls_cst_fnt-gail_id      = ls_gail_id_map-gail_id.
+    ls_cst_fnt-created_by   = sy-uname.
+    ls_cst_fnt-created_date = sy-datum.
+    ls_cst_fnt-created_time = sy-uzeit.
+
+    APPEND ls_cst_fnt TO lt_cst_fnt.
+  ENDLOOP.
+
+  " Check for duplicate GAIL IDs (validation step c)
+  " For each Location-Material-State, check if GAIL ID already exists in YRGA_CST_PUR
+  LOOP AT lt_gail_id_map INTO ls_gail_id_map.
+    CLEAR: lt_gail_ids, lv_gail_count, lv_gail_id_str.
+
+    " Check if GAIL IDs already exist for this combination in the date range
+    SELECT DISTINCT gail_id FROM yrga_cst_pur
+      INTO TABLE lt_gail_ids
+      WHERE location    = ls_gail_id_map-location_id
+        AND material    = ls_gail_id_map-material
+        AND state_code  = ls_gail_id_map-state_code
+        AND gas_day    BETWEEN gv_date_from AND gv_date_to.
+
+    lv_gail_count = lines( lt_gail_ids ).
+
+    IF lv_gail_count > 1.
+      " Multiple GAIL IDs found - log error
+      lv_error_found = abap_true.
+      CLEAR ls_error_log.
+      ls_error_log-date_from   = gv_date_from.
+      ls_error_log-date_to     = gv_date_to.
+      ls_error_log-location_id = ls_gail_id_map-location_id.
+      ls_error_log-material    = ls_gail_id_map-material.
+      ls_error_log-state_code  = ls_gail_id_map-state_code.
+
+      " Build GAIL IDs string for error message
+      LOOP AT lt_gail_ids INTO DATA(lv_gail_id).
+        IF lv_gail_id_str IS INITIAL.
+          lv_gail_id_str = lv_gail_id.
+        ELSE.
+          CONCATENATE lv_gail_id_str ',' lv_gail_id INTO lv_gail_id_str SEPARATED BY space.
+        ENDIF.
+      ENDLOOP.
+      ls_error_log-gail_ids = lv_gail_id_str.
+      APPEND ls_error_log TO lt_error_log.
+    ENDIF.
+  ENDLOOP.
+
+  " If errors found, display error log and exit without saving
+  IF lv_error_found = abap_true.
+    PERFORM display_gail_id_error_log USING lt_error_log.
+    MESSAGE e000(ygms_msg) WITH 'Multiple GAIL IDs found. Data NOT saved.'.
+    RETURN.
+  ENDIF.
+
+  " Delete existing data for same Location ID and Fortnight (step f)
+  DELETE FROM yrga_cst_pur
+    WHERE gas_day BETWEEN gv_date_from AND gv_date_to.
+
+  DELETE FROM yrga_cst_fnt_d
+    WHERE date_from = gv_date_from
+      AND date_to   = gv_date_to.
+
+  " Save records to both database tables
   IF lt_cst_pur IS NOT INITIAL.
     MODIFY yrga_cst_pur FROM TABLE lt_cst_pur.
-    IF sy-subrc = 0.
-      COMMIT WORK AND WAIT.
-      lv_counter = lines( lt_cst_pur ).
-      MESSAGE s000(ygms_msg) WITH lv_counter 'records saved to YRGA_CST_PUR'.
-    ELSE.
+    IF sy-subrc <> 0.
       ROLLBACK WORK.
-      MESSAGE e000(ygms_msg) WITH 'Error saving data to database'.
+      MESSAGE e000(ygms_msg) WITH 'Error saving data to YRGA_CST_PUR'.
+      RETURN.
     ENDIF.
   ENDIF.
+
+  IF lt_cst_fnt IS NOT INITIAL.
+    MODIFY yrga_cst_fnt_d FROM TABLE lt_cst_fnt.
+    IF sy-subrc <> 0.
+      ROLLBACK WORK.
+      MESSAGE e000(ygms_msg) WITH 'Error saving data to YRGA_CST_FNT_D'.
+      RETURN.
+    ENDIF.
+  ENDIF.
+
+  " Commit if both saves successful
+  COMMIT WORK AND WAIT.
+
+  lv_counter = lines( lt_cst_pur ).
+  lv_fnt_counter = lines( lt_cst_fnt ).
+  MESSAGE s000(ygms_msg) WITH lv_counter 'daily,' lv_fnt_counter 'fortnightly records saved'.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form DISPLAY_GAIL_ID_ERROR_LOG
+*&---------------------------------------------------------------------*
+FORM display_gail_id_error_log USING pt_error_log TYPE STANDARD TABLE.
+  DATA: lt_fieldcat TYPE slis_t_fieldcat_alv,
+        ls_fieldcat TYPE slis_fieldcat_alv.
+
+  CLEAR ls_fieldcat.
+  ls_fieldcat-fieldname = 'DATE_FROM'.
+  ls_fieldcat-seltext_l = 'From Date'.
+  ls_fieldcat-col_pos   = 1.
+  APPEND ls_fieldcat TO lt_fieldcat.
+
+  CLEAR ls_fieldcat.
+  ls_fieldcat-fieldname = 'DATE_TO'.
+  ls_fieldcat-seltext_l = 'To Date'.
+  ls_fieldcat-col_pos   = 2.
+  APPEND ls_fieldcat TO lt_fieldcat.
+
+  CLEAR ls_fieldcat.
+  ls_fieldcat-fieldname = 'LOCATION_ID'.
+  ls_fieldcat-seltext_l = 'Location ID'.
+  ls_fieldcat-col_pos   = 3.
+  APPEND ls_fieldcat TO lt_fieldcat.
+
+  CLEAR ls_fieldcat.
+  ls_fieldcat-fieldname = 'MATERIAL'.
+  ls_fieldcat-seltext_l = 'Material'.
+  ls_fieldcat-col_pos   = 4.
+  APPEND ls_fieldcat TO lt_fieldcat.
+
+  CLEAR ls_fieldcat.
+  ls_fieldcat-fieldname = 'STATE_CODE'.
+  ls_fieldcat-seltext_l = 'State Code'.
+  ls_fieldcat-col_pos   = 5.
+  APPEND ls_fieldcat TO lt_fieldcat.
+
+  CLEAR ls_fieldcat.
+  ls_fieldcat-fieldname = 'GAIL_IDS'.
+  ls_fieldcat-seltext_l = 'GAIL IDs Found'.
+  ls_fieldcat-col_pos   = 6.
+  ls_fieldcat-outputlen = 50.
+  APPEND ls_fieldcat TO lt_fieldcat.
+
+  CALL FUNCTION 'REUSE_ALV_POPUP_TO_SELECT'
+    EXPORTING
+      i_title               = 'Error: Multiple GAIL IDs Found'
+      i_selection           = ' '
+      i_zebra               = abap_true
+      i_screen_start_column = 5
+      i_screen_start_line   = 5
+      i_screen_end_column   = 130
+      i_screen_end_line     = 20
+      i_tabname             = 'PT_ERROR_LOG'
+      it_fieldcat           = lt_fieldcat
+    TABLES
+      t_outtab              = pt_error_log
+    EXCEPTIONS
+      program_error         = 1
+      OTHERS                = 2.
 ENDFORM.
 *&---------------------------------------------------------------------*
 *& Form DISABLE_ALL_FIELDS
