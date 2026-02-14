@@ -464,14 +464,14 @@ FORM display_editable_alv.
   ls_fieldcat-fieldname = 'GCV'.
   ls_fieldcat-coltext   = 'Average GCV'.
   ls_fieldcat-outputlen = 12.
-  ls_fieldcat-do_sum    = abap_true.
+  ls_fieldcat-do_sum    = abap_false.
   ls_fieldcat-edit      = abap_false.
   APPEND ls_fieldcat TO gt_fieldcat.
   CLEAR ls_fieldcat.
   ls_fieldcat-fieldname = 'NCV'.
   ls_fieldcat-coltext   = 'Average NCV'.
   ls_fieldcat-outputlen = 12.
-  ls_fieldcat-do_sum    = abap_true.
+  ls_fieldcat-do_sum    = abap_false.
   ls_fieldcat-edit      = abap_false.
   APPEND ls_fieldcat TO gt_fieldcat.
   lv_date = gv_date_from.
