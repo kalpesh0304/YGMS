@@ -27,14 +27,14 @@ TYPES: BEGIN OF ty_loc_ctp_map,
 TYPES: BEGIN OF ty_validation,
          location_id       TYPE ygms_de_loc_id,
          material          TYPE ygms_de_gail_mat,
-         allocated_scm     TYPE p DECIMALS 3,
-         allocated_mbg     TYPE p DECIMALS 3,
+         allocated_scm     TYPE p DECIMALS 6,
+         allocated_mbg     TYPE p DECIMALS 6,
          ctp_id            TYPE ygms_de_ongc_ctp,
          ongc_material     TYPE ygms_de_ongc_mat,
-         supply_scm        TYPE p DECIMALS 3,
-         supply_mbg        TYPE p DECIMALS 3,
-         diff_pur_sup_scm  TYPE p DECIMALS 3,
-         diff_pur_sup_mbg  TYPE p DECIMALS 3,
+         supply_scm        TYPE p DECIMALS 6,
+         supply_mbg        TYPE p DECIMALS 6,
+         diff_pur_sup_scm  TYPE p DECIMALS 6,
+         diff_pur_sup_mbg  TYPE p DECIMALS 6,
        END OF ty_validation.
 * ALV Display structure
 TYPES: BEGIN OF ty_alv_display,
@@ -1087,7 +1087,7 @@ FORM save_data_to_db.
         lv_ts_char      TYPE c LENGTH 14,
         lv_date         TYPE datum,
         lv_day_index    TYPE i,
-        lv_day_qty      TYPE p DECIMALS 3,
+        lv_day_qty      TYPE p DECIMALS 6,
         lv_counter      TYPE i,
         lv_fnt_counter  TYPE i,
         lt_gail_id_map  TYPE TABLE OF ty_gail_id_map,
@@ -1101,13 +1101,13 @@ FORM save_data_to_db.
         lv_error_found  TYPE abap_bool.
 
   " Variables for weighted average calculation
-  DATA: lv_total_vol    TYPE p DECIMALS 3,
+  DATA: lv_total_vol    TYPE p DECIMALS 6,
         lv_sum_vol_gcv  TYPE p DECIMALS 6,
         lv_sum_vol_ncv  TYPE p DECIMALS 6,
         lv_avg_gcv      TYPE ygms_de_gcv,
         lv_avg_ncv      TYPE ygms_de_ncv,
-        lv_total_mbg    TYPE p DECIMALS 3,
-        lv_total_scm    TYPE p DECIMALS 3.
+        lv_total_mbg    TYPE p DECIMALS 6,
+        lv_total_scm    TYPE p DECIMALS 6.
 
   " Variables for GAIL ID validation
   DATA: lt_gail_ids     TYPE TABLE OF yrga_cst_pur-gail_id,
