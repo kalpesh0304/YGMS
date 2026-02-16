@@ -607,25 +607,25 @@ ENDFORM.
 FORM handle_allocate.
   TYPES : BEGIN OF ty_sales,
             matnr          TYPE matnr,
-            qty_mbg        TYPE ygms_de_qty_mbg,
-            qty_mbg_supply TYPE ygms_de_qty_mbg,
-            qty_mbg_diff   TYPE ygms_de_qty_mbg,
-            qty_allocated  TYPE ygms_de_qty_mbg,
-            qty_access     TYPE ygms_de_qty_mbg,
+            qty_mbg        TYPE p DECIMALS 6,
+            qty_mbg_supply TYPE p DECIMALS 6,
+            qty_mbg_diff   TYPE p DECIMALS 6,
+            qty_allocated  TYPE p DECIMALS 6,
+            qty_access     TYPE p DECIMALS 6,
           END OF ty_sales.
   TYPES : BEGIN OF ty_asales,
             regio   TYPE regio,
-            qty_mbg TYPE ygms_de_qty_mbg,
+            qty_mbg TYPE p DECIMALS 6,
           END OF ty_asales.
-  DATA l_left TYPE ygms_de_qty_mbg.
+  DATA l_left TYPE p DECIMALS 6.
   TYPES : BEGIN OF ty_state,
             state_code    TYPE regio,
             state         TYPE bezei20,
             matnr         TYPE matnr,
-            qty_mbg       TYPE ygms_de_qty_mbg,
-            qty_mbg_diff  TYPE ygms_de_qty_mbg,
-            qty_allocated TYPE ygms_de_qty_mbg,
-            percentage    TYPE ygms_ongc_percentage,
+            qty_mbg       TYPE p DECIMALS 6,
+            qty_mbg_diff  TYPE p DECIMALS 6,
+            qty_allocated TYPE p DECIMALS 6,
+            percentage    TYPE p DECIMALS 6,
           END OF ty_state.
   DATA : it_sales  TYPE TABLE OF ty_sales,
          wa_sales  TYPE ty_sales,
@@ -717,8 +717,8 @@ FORM handle_allocate.
   DATA l_day TYPE char10.
   DATA l_index(2) TYPE n.
   DATA l_date TYPE sy-datum.
-  DATA l_ncv TYPE ygms_de_gcv.
-  DATA l_gcv TYPE ygms_de_gcv.
+  DATA l_ncv TYPE p DECIMALS 6.
+  DATA l_gcv TYPE p DECIMALS 6.
   DATA l_day_sm3 TYPE p DECIMALS 6.
   LOOP AT it_state INTO wa_state WHERE percentage IS NOT INITIAL.
     LOOP AT gt_alv_display ASSIGNING FIELD-SYMBOL(<fs_alv>) WHERE state_code = wa_state-state_code AND
